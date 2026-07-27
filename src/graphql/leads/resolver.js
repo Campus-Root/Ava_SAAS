@@ -3,7 +3,14 @@ import { Lead, LeadTemplate } from "../../models/Leads.js";
 import graphqlFields from "graphql-fields";
 import { documentTypes, getSelectFields } from "../../utils/graphqlTools.js";
 import { GraphQLError } from "graphql";
-import { buildDuplicateQuery, mergeContactDetails, findMatchedHandles } from "../../utils/leadDuplicateUtils.js";
+import {
+  buildDuplicateQuery,
+  mergeContactDetails,
+  findMatchedHandles,
+  extractHandles,
+  indexLeadsByHandle,
+  classifyBulkCreateRows,
+} from "../../utils/leadDuplicateUtils.js";
 import { Channel } from "../../models/Channels.js";
 import { sendKafkaMessage } from "../../utils/kafka.js";
 import { Message, MessageSession } from "../../models/Messages.js";
@@ -47,7 +54,7 @@ export const leadResolvers = {
 
     fetchLeads: async (
       _,
-      { limit = 10, page = 1, templateId, id, status, origin, tags = [] },
+      { limit = 10, page = 1, templateId, tag, name, id, status, origin },
       context,
       info
     ) => {
@@ -56,7 +63,8 @@ export const leadResolvers = {
       if (templateId !== undefined) filter.template = templateId;
       if (status !== undefined) filter.status = status;
       if (origin !== undefined) filter.source = origin;
-      if (tags.length > 0) filter.tags = { $in: tags };
+      if (tag !== undefined) filter.tags = { $regex: tag, $options: 'i' };
+      if (name !== undefined) filter.name = { $regex: name, $options: 'i' };
 
       const requestedFields = graphqlFields(info, {}, { processArguments: false });
       const { rootFields } = getSelectFields(requestedFields.data);
@@ -73,6 +81,38 @@ export const leadResolvers = {
       return {
         data: leads,
         metaData: { page, limit, totalPages: Math.ceil(totalDocuments / limit), totalDocuments },
+      };
+    },
+    
+    validateBulkCreateLeads: async (_, { dataList }, context) => {
+      const businessId = context.user.business;
+
+      // One DB round-trip: fetch any leads that share a handle with this batch
+      const orClauses = [];
+      for (const input of dataList) {
+        for (const { platform, handle } of extractHandles(input.contactDetails)) {
+          orClauses.push({ [`contactDetails.${platform}`]: { $elemMatch: { handle } } });
+        }
+      }
+
+      const existingLeads = orClauses.length
+        ? await Lead.find({ business: businessId, $or: orClauses }).lean()
+        : [];
+
+      const { wouldCreate, conflicts } = classifyBulkCreateRows(
+        dataList,
+        indexLeadsByHandle(existingLeads)
+      );
+
+      return {
+        wouldCreate,
+        conflicts,
+        summary: {
+          total: dataList.length,
+          wouldCreate: wouldCreate.length,
+          existingDuplicates: conflicts.filter((c) => c.reason === 'EXISTING_LEAD').length,
+          withinBatchDuplicates: conflicts.filter((c) => c.reason === 'WITHIN_BATCH').length,
+        },
       };
     },
   },
@@ -120,62 +160,15 @@ export const leadResolvers = {
         throw new GraphQLError("Template not found", { extensions: { code: "NOT_FOUND" } });
       return true;
     },
-
     createLead: async (_, { LeadCreateInput }, context) => {
       const {
         templateId, name, contactDetails, lastInteractedAt, nextFollowUpAt,
-        source, tags, leadScore, status, notes, data, mode
+        source, tags, leadScore, status, notes, data,
       } = LeadCreateInput;
-
       const businessId = context.user.business;
-
-      // Step 1: check for duplicate
       const duplicateQuery = buildDuplicateQuery(contactDetails, businessId);
       const existingLead = duplicateQuery ? await Lead.findOne(duplicateQuery) : null;
-
-      // Step 2: handle based on mode
-      if (existingLead) {
-        if (!mode || !['merge', 'new'].includes(mode)) {
-          const matched = findMatchedHandles(contactDetails, existingLead);
-          throw new GraphQLError(
-            `A lead with matching contact detail(s) already exists (matched on: ${matched.join(', ')}). ` +
-            `You must specify a 'mode': use "merge" to combine this data into the existing lead, ` +
-            `or "new" to create a separate lead anyway.`,
-            { extensions: { code: 'DUPLICATE_LEAD', existingLeadId: existingLead._id, matchedOn: matched } }
-          );
-        }
-
-        if (mode === 'merge') {
-          const mergedContactDetails = mergeContactDetails(
-            existingLead.contactDetails?.toObject?.() || existingLead.contactDetails,
-            contactDetails
-          );
-
-          return Lead.findByIdAndUpdate(
-            existingLead._id,
-            {
-              $set: {
-                contactDetails: mergedContactDetails,
-                // Only overwrite scalar fields if incoming has a value
-                ...(name && { name }),
-                ...(source && { source }),
-                ...(notes && { notes }),
-                ...(leadScore != null && { leadScore }),
-                ...(status && { status }),
-                ...(lastInteractedAt && { lastInteractedAt }),
-                ...(nextFollowUpAt && { nextFollowUpAt }),
-                ...(data && { data: { ...existingLead.data, ...data } }),
-              },
-              $addToSet: { tags: { $each: tags || [] } },  // merge tags without dupes
-            },
-            { new: true }
-          );
-        }
-
-        // mode === 'new': fall through to create
-      }
-
-      // No duplicate, or mode is 'new' — create fresh
+      if (existingLead) throw new GraphQLError("Lead already exists", { extensions: { code: "DUPLICATE_LEAD", existingLeadId: existingLead._id.toString(), matchedOn: findMatchedHandles(contactDetails, existingLead) } });
       return Lead.create({
         template: templateId,
         contactDetails,
@@ -381,7 +374,6 @@ export const leadResolvers = {
             });
             continue;
           }
-
           if (mode === 'merge') {
             const mergedContactDetails = mergeContactDetails(
               existingLead.contactDetails?.toObject?.() || existingLead.contactDetails,
@@ -409,10 +401,7 @@ export const leadResolvers = {
             merged.push(updated);
             continue;
           }
-
-          // mode === 'new': fall through to create
         }
-
         const newLead = await Lead.create({
           template: templateId,
           contactDetails,

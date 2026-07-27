@@ -78,15 +78,51 @@ export const leadTypeDefs = `#graphql
   }
 
 type BulkCreateResult {
-  created: [Lead!]!
-  merged: [Lead!]!
-  duplicatesRequiringMode: [DuplicateConflict!]!
+  created: [Lead]
+  merged: [Lead]
+  duplicatesRequiringMode: [DuplicateConflict]
 }
 
 type DuplicateConflict {
   input: JSON
   existingLeadId: ID
+  matchedOn: [String]
+}
+
+enum BulkConflictReason {
+  EXISTING_LEAD
+  WITHIN_BATCH
+}
+
+"""A row that would be created if bulkCreateLeads ran"""
+type BulkValidateRow {
+  index: Int!
+  input: JSON
+}
+
+"""A row that conflicts with the DB or another row in the same batch"""
+type BulkValidateConflict {
+  index: Int!
+  input: JSON
+  reason: BulkConflictReason!
+  """Set when reason is EXISTING_LEAD"""
+  existingLeadId: ID
+  """Set when reason is WITHIN_BATCH — index of the earlier row in this batch"""
+  conflictIndex: Int
   matchedOn: [String!]!
+}
+
+type BulkValidateResult {
+  wouldCreate: [BulkValidateRow!]!
+  conflicts: [BulkValidateConflict!]!
+  summary: BulkValidateSummary!
+}
+
+type BulkValidateSummary {
+  total: Int!
+  wouldCreate: Int!
+  existingDuplicates: Int!
+  withinBatchDuplicates: Int!
 }
 
   # ─── Inputs ──────────────────────────────────────────────────────────────────
@@ -100,10 +136,6 @@ type DuplicateConflict {
     fields: JSON
     isActive: Boolean
   }
-enum LeadInsertMode {
-  merge
-  new
-}
   """Input for creating or updating a lead"""
 input LeadCreateInput {
   templateId: ID
@@ -118,7 +150,6 @@ input LeadCreateInput {
   status: LeadStatusEnum
   notes: [String]
   data: JSON
-  mode: LeadInsertMode  # <-- add this
 }
 
 
@@ -146,8 +177,13 @@ input contactLeadMessageInput {
       id: ID
       status: LeadStatusEnum
       origin: String
-      tags: [String]
+      tag: String
+      name: String
     ): LeadPagination @requireScope(scope: "lead:read") @requireBusinessAccess
+
+    """Dry-run bulk create: checks DB + within-batch collisions, writes nothing"""
+    validateBulkCreateLeads(dataList: [LeadCreateInput!]!): BulkValidateResult
+      @requireScope(scope: "lead:import") @requireBusinessAccess
   }
 
   # ─── Mutations ───────────────────────────────────────────────────────────────

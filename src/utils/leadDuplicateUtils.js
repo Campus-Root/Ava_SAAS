@@ -84,3 +84,86 @@ export function findMatchedHandles(contactDetails, existingLead) {
     .filter(h => existingSet.has(`${h.platform}:${h.handle}`))
     .map(h => `${h.platform}:${h.handle}`);
 }
+
+/**
+ * Builds a Map of "platform:handle" → lead from a list of existing leads.
+ */
+export function indexLeadsByHandle(leads = []) {
+  const map = new Map();
+  for (const lead of leads) {
+    const details = lead.contactDetails?.toObject?.() || lead.contactDetails || {};
+    for (const { platform, handle } of extractHandles(details)) {
+      const key = `${platform}:${handle}`;
+      if (!map.has(key)) map.set(key, lead);
+    }
+  }
+  return map;
+}
+
+/**
+ * Dry-run classify for bulk create: within-batch collisions + DB matches.
+ * Does not write. `handleToLead` should be preloaded from DB (see indexLeadsByHandle).
+ *
+ * @returns {{ wouldCreate: Array, conflicts: Array }}
+ */
+export function classifyBulkCreateRows(dataList = [], handleToLead = new Map()) {
+  const seenInBatch = new Map(); // handleKey → first index in this batch
+  const wouldCreate = [];
+  const conflicts = [];
+
+  dataList.forEach((input, index) => {
+    const handleKeys = extractHandles(input.contactDetails).map(
+      ({ platform, handle }) => `${platform}:${handle}`
+    );
+
+    // 1) Within-batch collision against an earlier row that wouldCreate
+    const batchMatched = [];
+    let conflictIndex = null;
+    for (const key of handleKeys) {
+      if (seenInBatch.has(key)) {
+        batchMatched.push(key);
+        if (conflictIndex == null) conflictIndex = seenInBatch.get(key);
+      }
+    }
+    if (batchMatched.length) {
+      conflicts.push({
+        index,
+        input,
+        reason: 'WITHIN_BATCH',
+        conflictIndex,
+        existingLeadId: null,
+        matchedOn: batchMatched,
+      });
+      return;
+    }
+
+    // 2) Existing lead in DB
+    const dbMatched = [];
+    let existingLead = null;
+    for (const key of handleKeys) {
+      if (handleToLead.has(key)) {
+        dbMatched.push(key);
+        if (!existingLead) existingLead = handleToLead.get(key);
+      }
+    }
+    if (existingLead) {
+      conflicts.push({
+        index,
+        input,
+        reason: 'EXISTING_LEAD',
+        conflictIndex: null,
+        existingLeadId: existingLead._id.toString(),
+        matchedOn: dbMatched,
+      });
+      return;
+    }
+
+    // 3) Clean — would create; claim handles for later within-batch checks
+    wouldCreate.push({ index, input });
+    for (const key of handleKeys) {
+      if (!seenInBatch.has(key)) seenInBatch.set(key, index);
+    }
+  });
+
+  return { wouldCreate, conflicts };
+}
