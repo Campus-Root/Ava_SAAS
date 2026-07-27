@@ -239,8 +239,8 @@ export const jobResolvers = {
                                 },
                                 apiId: "6a50b6bf445a2fbf099b4a29",
                                 authId: channel.apiAuthenticator._id,
-                                references: { type: "CallSession", id: callSession?._id }
-                            }
+                            },
+                            references: { type: "CallSession", id: callSession?._id }
                         });
                     }
                     break;
