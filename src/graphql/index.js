@@ -137,7 +137,12 @@ export const registerApollo = async (app, httpServer) => {
       if (error.status === 403) return new GraphQLError("Forbidden - Insufficient permissions.", { extensions: { code: 'FORBIDDEN' } });
       if (error.status === 429) return new GraphQLError("Too Many Requests - Rate limited.", { extensions: { code: 'RATE_LIMITED' } });
       if (error.message.includes('Context creation failed')) return new GraphQLError('Authentication service unavailable', { extensions: { code: 'AUTH_SERVICE_UNAVAILABLE' } });
-      return new GraphQLError(error.message, { extensions: { code: error.code || error.extensions?.code }, });
+      return new GraphQLError(error.message, {
+        extensions: {
+          ...error.extensions,
+          code: error.code || error.extensions?.code,
+        },
+      });
     },
     plugins: [ApolloServerPluginDrainHttpServer({ httpServer }), ApolloServerPluginLandingPageProductionDefault({ embed: true }),
     {
