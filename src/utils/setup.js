@@ -8,7 +8,7 @@ import OauthTataTele from "../services/ExternalAuthenticationServices/tatatele.j
 import OauthTelegram from "../services/ExternalAuthenticationServices/telegram.js";
 import OauthTwilio from "../services/ExternalAuthenticationServices/twilio.js";
 import OauthWhatsApp from "../services/ExternalAuthenticationServices/whatsapp.js";
-
+import OauthAvakado from "../services/ExternalAuthenticationServices/avakado.js";
 import { Channel } from "../models/Channels.js";
 import { parsePhoneNumber } from 'libphonenumber-js';
 
@@ -69,7 +69,7 @@ export const PROVIDER_MAP = {
     "Microsoft Excel": new OauthMicrosoft(),
     "Calendly": new OauthCalendly(),
     "Telegram": new OauthTelegram(),
-    // 'Avakado.ai': new OauthAvakado(),
+    'Avakado.ai': new OauthAvakado(),
     "Exotel": new OauthExotel(),
     "Tata Tele": new OauthTataTele(),
 };

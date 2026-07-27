@@ -225,20 +225,21 @@ export const jobResolvers = {
                             lead: leadId,
                             type: "webhook",
                             data: {
-                                "input": {
-                                    "From": leadPhoneNumber,
-                                    "CallerId": exophone,
-                                    "Url": `http://my.exotel.com/${accountSid}/exoml/start_voice/${appId}`,
-                                    "StatusCallback": `https://chat.avakado.ai/webhook/${channel.provider.name}`,
-                                    "Record": true,
-                                    "CustomField": {
+                                input: {
+                                    From: leadPhoneNumber,
+                                    CallerId: exophone,
+                                    Url: `http://my.exotel.com/${accountSid}/exoml/start_voice/${appId}`,
+                                    StatusCallback: `https://chat.avakado.ai/webhook/${channel.provider.name}`,
+                                    Record: true,
+                                    CustomField: {
                                         callSession: callSession._id,
                                         campaign: newCampaign._id,
                                         business: context.user.business
                                     }
                                 },
-                                "apiId": "6a50b6bf445a2fbf099b4a29",
-                                "authId": channel.apiAuthenticator._id
+                                apiId: "6a50b6bf445a2fbf099b4a29",
+                                authId: channel.apiAuthenticator._id,
+                                references: { type: "CallSession", id: callSession?._id }
                             }
                         });
                     }

@@ -1,107 +1,51 @@
 import axios from "axios";
 import BaseOAuthProvider from "./base.js";
-const SUBDOMAIN_MAP = {
-    singapore: "api.exotel.com",       // my.exotel.com accounts
-    mumbai: "api.in.exotel.com",       // my.mum1.exotel.com accounts
-};
-
-function buildBaseUrl(subdomain) {
-    return `https://${subdomain}`;
-}
-
-function basicAuth(apiKey, apiToken) {
-    return `Basic ${Buffer.from(`${apiKey}:${apiToken}`).toString("base64")}`;
-}
-
-export default class OauthExotel extends BaseOAuthProvider {
-    name = "exotel";
+export default class OauthAvakado extends BaseOAuthProvider {
+    name = "avakado";
 
     getConfig() {
         return {};
     }
-
-    // Exotel has no OAuth — credentials are static (apiKey + apiToken + accountSid + subdomain).
-    // getAuthUrl is not applicable; the UI should collect these four fields directly.
     getAuthUrl({ state = "" }) {
         return {
-            AuthUrl: `https://www.avakado.ai/integrate/exotel?state=${state}`,
+            AuthUrl: `https://www.avakado.ai/integrate/avakado?state=${state}`,
             ExpectedKeysFromQuery: {
                 type: "object",
-                required: ["apiKey", "apiToken", "accountSid", "region", "scope"],
+                required: ["expiry", "scope", "accessToken"],
                 properties: {
-                    apiKey: {
-                        "type": "string",
-                        description: "Exotel API Key",
-                        minLength: 1,
-                        xUi: {
-                            label: "API Key",
-                            inputType: "password",
-                            sensitive: true,
-                            placeholder: "e.g. a1b2c3d4e5f6",
-                            helpText: "Exotel Dashboard → Settings → API Settings",
-                            helpLink: "https://my.exotel.com"
-                        }
-                    },
-                    apiToken: {
+                    expiry: {
                         type: "string",
-                        description: "Exotel API Token",
-                        minLength: 1,
+                        description: "Expiry",
+                        default: "30d",
                         xUi: {
-                            label: "API Token",
-                            inputType: "password",
-                            sensitive: true,
-                            placeholder: "e.g. 9f8e7d6c5b4a",
-                            helpText: "Paired secret shown alongside the API Key on the same Settings page."
-                        }
-                    },
-                    accountSid: {
-                        type: "string",
-                        description: "Exotel Account SID",
-                        minLength: 1,
-                        xUi: {
-                            label: "Account SID",
+                            label: "Expiry",
                             inputType: "text",
-                            sensitive: false,
-                            placeholder: "e.g. yourcompany1a2b3c",
-                            helpText: "Also found on the API Settings page — not the same as your login username."
                         }
                     },
-                    region: {
+                    accessToken: {
                         type: "string",
-                        description: "Exotel Region",
-                        default: "Singapore",
-                        enum: ["Singapore", "Mumbai"],
+                        description: "Access Token",
+                        default: "",
                         xUi: {
-                            label: "Data Center",
-                            inputType: "select",
-                            options: [
-                                { value: "Singapore", label: "Singapore (Global)" },
-                                { value: "Mumbai", label: "India (Mumbai)" }
-                            ],
-                            helpText: "Pick the data center your Exotel account was provisioned in. This determines which host every API call is routed to.",
-                            mapsTo: {
-                                subdomain: { Singapore: "api.exotel.com", Mumbai: "api.in.exotel.com" },
-                                ccmSubdomain: { Singapore: "ccm-api.exotel.com", Mumbai: "ccm-api.in.exotel.com" }
-                            }
+                            label: "Access Token",
+                            inputType: "password",
                         }
                     },
                     scope: {
                         type: "array",
-                        description: "Exotel Scopes",
+                        description: "Avakado Scopes",
                         items: {
                             type: "string",
-                            enum: ["voice_calling", "exophones_manage", "ccm_agent_context"]
+                            // enum: ["", "", ""]
                         },
-                        default: ["voice_calling", "exophones_manage"],
+                        // default: ["", ""],
                         xUi: {
                             label: "Enable capabilities",
                             inputType: "multi-select",
                             options: [
-                                { value: "voice_calling", label: "Voice — make/receive calls, call reporting" },
-                                { value: "exophones_manage", label: "Phone Numbers — browse, purchase, configure ExoPhones" },
-                                { value: "ccm_agent_context", label: "Agent Calling (deprecated) — CCM agent-to-customer calls" }
+                                // { value: "", label: "" },
                             ],
-                            helpText: "Application-level gating only — Exotel itself does not scope API keys; this just controls which of your app's Exotel actions this credential set is allowed to power."
+                            helpText: "Application-level gating only - this is used to control the capabilities of the authenticattion key"
                         }
                     }
                 },
@@ -110,33 +54,14 @@ export default class OauthExotel extends BaseOAuthProvider {
         };
     }
 
-    // Validates the credentials by hitting a lightweight Exotel endpoint.
-    // ExpectedKeysFromQuery: ['apiKey', 'apiToken', 'accountSid', 'region']
-    // region: 'singapore' | 'mumbai'  (defaults to 'singapore')
-    async getTokens({ apiKey, apiToken, accountSid, region = "singapore", scope = [] }) {
-        if (!apiKey || !apiToken || !accountSid) {
-            return this._errorResponse("missing_credentials", "apiKey, apiToken, and accountSid are required.", 400);
-        }
-        const subdomain = SUBDOMAIN_MAP[region] || SUBDOMAIN_MAP.singapore;
+    async getTokens({ expiry, scope, accessToken }) {
         try {
-            const { data: accountDetails } = await axios.get(`https://api.exotel.com/v1/Accounts/${accountSid}.json`, {
-                headers: {
-                    'Authorization': basicAuth(apiKey, apiToken)
-                }
-            });
-            console.log("accountDetails", accountDetails);
-            // expect 
-            // { Sid: 'onewindowoverseaseducation1', FriendlyName: 'One Window Overseas Education', Type: 'Full', Status: 'active', DateCreated: '2025-05-16 17:27:41', DateUpdated: '2025-11-07 15:20:11', Uri: null, BillingType: 'prepaid', KycStatus: 'completed' }
-            // Lightweight validation: list calls (empty is fine, 200 = credentials valid)
-            // await axios.get(`${buildBaseUrl(subdomain)}/v1/Accounts/${accountSid}/Calls.json?PageSize=1`, { headers: { Authorization: basicAuth(apiKey, apiToken) } });
-            return this._successResponse({ credentials: { apiKey, apiToken, accountSid, subdomain }, scope: scope, accountDetails: accountDetails });
+            return this._successResponse({ credentials: { expiry, scope, accessToken } });
         } catch (error) {
             return this._handleError(error);
         }
     }
 
-    // Sets up inbound call/SMS webhook for the given Exotel virtual number (exophone).
-    // config must include: { exophone, appId, capabilities }  — the DID/Exophone to attach the webhook to and the appId to use and the options to use
     async setupChannel({ apiAuthenticator, channelId, config }) {
         const webhookUrl = `https://sockets.avakado.ai/exotel-redirect?channelId=${channelId}`;
         const { apiKey, apiToken, accountSid, subdomain } = apiAuthenticator.credentials;
@@ -273,3 +198,4 @@ export default class OauthExotel extends BaseOAuthProvider {
         }
     }
 };
+
