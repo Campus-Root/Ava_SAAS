@@ -191,6 +191,9 @@ export const messageTypeDefs = `#graphql
     """
     fetchCallSessions(
       conversationId: ID
+      ids: [ID]
+      direction: [String]
+      externalCallSessionId: String
       limit: Int
       page: Int
     ): CallSessionPagination @requireScope(scope: "call:read") @requireBusinessAccess
