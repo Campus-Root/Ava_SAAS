@@ -99,7 +99,9 @@ export function indexLeadsByHandle(leads = []) {
   }
   return map;
 }
-
+export function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 /**
  * Dry-run classify for bulk create: within-batch collisions + DB matches.
  * Does not write. `handleToLead` should be preloaded from DB (see indexLeadsByHandle).

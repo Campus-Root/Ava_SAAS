@@ -157,6 +157,18 @@ input contactLeadMessageInput {
   type: String
   data: JSON
 }
+  type FacetOption {
+  value: String
+  count: Int
+}
+
+type LeadFacets {
+  status: [FacetOption]
+  origin: [FacetOption]
+  tags: [FacetOption]
+  template: [FacetOption]
+}
+
   # ─── Queries ─────────────────────────────────────────────────────────────────
 
   type Query {
@@ -169,21 +181,23 @@ input contactLeadMessageInput {
       isActive: Boolean
     ): LeadTemplatePagination @requireScope(scope: "lead:read") @requireBusinessAccess
 
+
+  fetchLeadFacets : LeadFacets @requireScope(scope:"lead:read")   @requireBusinessAccess
+
     """Fetch paginated leads with optional filters"""
     fetchLeads(
       limit: Int
       page: Int
-      templateId: ID
-      id: ID
-      status: LeadStatusEnum
-      origin: String
-      tag: String
-      name: String
+      templateIds: [ID]
+      identifier: String
+      ids: [ID]
+      status: [LeadStatusEnum]
+      origin: [String]
+      tags: [String]
     ): LeadPagination @requireScope(scope: "lead:read") @requireBusinessAccess
 
     """Dry-run bulk create: checks DB + within-batch collisions, writes nothing"""
-    validateBulkCreateLeads(dataList: [LeadCreateInput!]!): BulkValidateResult
-      @requireScope(scope: "lead:import") @requireBusinessAccess
+    validateBulkCreateLeads(dataList: [LeadCreateInput!]!): BulkValidateResult @requireScope(scope: "lead:import") @requireBusinessAccess
   }
 
   # ─── Mutations ───────────────────────────────────────────────────────────────

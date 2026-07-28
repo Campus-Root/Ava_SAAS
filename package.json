@@ -73,6 +73,9 @@
     "yup": "^1.6.1",
     "zod": "^3.24.4"
   },
+  "graphql": {
+    "documents": "**/*.{graphql,js,ts,jsx,tsx}"
+  },
   "devDependencies": {
     "nodemon": "^3.1.9"
   }

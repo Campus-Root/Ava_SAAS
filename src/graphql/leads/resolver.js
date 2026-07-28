@@ -10,6 +10,7 @@ import {
   extractHandles,
   indexLeadsByHandle,
   classifyBulkCreateRows,
+  escapeRegex,
 } from "../../utils/leadDuplicateUtils.js";
 import { Channel } from "../../models/Channels.js";
 import { sendKafkaMessage } from "../../utils/kafka.js";
@@ -21,6 +22,7 @@ import { AgentModel } from "../../models/Agent.js";
 import { fireAndForgetAxios } from "../../utils/fireAndForget.js";
 import { normalizePhoneNumber } from "../../utils/setup.js";
 import axios from "axios";
+import mongoose from "mongoose";
 
 export const leadResolvers = {
   Query: {
@@ -52,23 +54,21 @@ export const leadResolvers = {
       };
     },
 
-    fetchLeads: async (
-      _,
-      { limit = 10, page = 1, templateId, tag, name, id, status, origin },
-      context,
-      info
-    ) => {
+    fetchLeads: async (_, { limit = 10, page = 1, templateIds = [], tags = [], identifier, ids = [], status = [], origin = [] }, context, info) => {
       const filter = { business: context.user.business };
-      if (id !== undefined) filter._id = id;
-      if (templateId !== undefined) filter.template = templateId;
-      if (status !== undefined) filter.status = status;
-      if (origin !== undefined) filter.source = origin;
-      if (tag !== undefined) filter.tags = { $regex: tag, $options: 'i' };
-      if (name !== undefined) filter.name = { $regex: name, $options: 'i' };
+      if (ids.length > 0) filter._id = { $in: ids.map(id => new mongoose.Types.ObjectId(id)) };
+      if (templateIds.length > 0) filter.template = { $in: templateIds.map(id => new mongoose.Types.ObjectId(id)) };
+      if (status.length > 0) filter.status = { $in: status };
+      if (origin.length > 0) filter.source = { $in: origin };
+      if (tags.length > 0) filter.tags = { $in: tags };
+
+      if (identifier !== undefined) {
+        const regex = { $regex: identifier, $options: 'i' };
+        filter.$or = [{ name: regex }, ...["whatsapp", "telegram", "email", "phone", "twitter", "instagram", "facebook"].map(platform => ({ [`contactDetails.${platform}.handle`]: regex }))];
+      }
 
       const requestedFields = graphqlFields(info, {}, { processArguments: false });
       const { rootFields } = getSelectFields(requestedFields.data);
-
       const [leads, totalDocuments] = await Promise.all([
         Lead.find(filter)
           .sort({ updatedAt: -1 })
@@ -78,12 +78,42 @@ export const leadResolvers = {
         Lead.countDocuments(filter),
       ]);
 
-      return {
-        data: leads,
-        metaData: { page, limit, totalPages: Math.ceil(totalDocuments / limit), totalDocuments },
-      };
+      return { data: leads, metaData: { page, limit, totalPages: Math.ceil(totalDocuments / limit), totalDocuments } };
     },
-    
+    fetchLeadFacets: async (_, { }, context) => {
+      const baseFilter = { business: context.user.business };
+      const [result] = await Lead.aggregate([
+        { $match: baseFilter },
+        {
+          $facet: {
+            status: [
+              { $group: { _id: '$status', count: { $sum: 1 } } },
+              { $project: { _id: 0, value: '$_id', count: 1 } },
+              { $sort: { count: -1 } },
+            ],
+            origin: [
+              { $group: { _id: '$source', count: { $sum: 1 } } },
+              { $project: { _id: 0, value: '$_id', count: 1 } },
+              { $sort: { count: -1 } },
+            ],
+            tags: [
+              { $unwind: '$tags' },
+              { $group: { _id: '$tags', count: { $sum: 1 } } },
+              { $project: { _id: 0, value: '$_id', count: 1 } },
+              { $sort: { count: -1 } },
+              { $limit: 20 },
+            ],
+            template: [
+              { $group: { _id: '$template', count: { $sum: 1 } } },
+              { $project: { _id: 0, value: '$_id', count: 1 } },
+              { $sort: { count: -1 } },
+            ],
+          },
+        },
+      ]);
+
+      return result;
+    },
     validateBulkCreateLeads: async (_, { dataList }, context) => {
       const businessId = context.user.business;
 
