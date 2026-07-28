@@ -67,14 +67,16 @@ export const messageResolvers = {
 
     fetchCallSessions: async (
       _,
-      { conversationId, limit = 20, page = 1 },
+      { conversationId, ids = [], direction = [], externalCallSessionId = null, limit = 20, page = 1 },
       context,
       info
     ) => {
       const skip = (page - 1) * limit;
       const filter = { business: context.user.business };
       if (conversationId) filter.conversation = conversationId;
-
+      if (direction.length > 0) filter.direction = { $in: direction };
+      if (ids.length > 0) filter._id = { $in: ids };
+      if (externalCallSessionId) filter.externalCallSessionId = externalCallSessionId;
       const requestedFields = graphqlFields(info, {}, { processArguments: false });
       const { rootFields, populateFields } = getSelectFields(requestedFields.data);
 
