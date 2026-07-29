@@ -9,6 +9,7 @@ const TaskSchema = new Schema({
         failedAt: Date,// failed of task
         completedAt: Date,// end of task
     },
+    attempts: { type: Number, default: 1 },
     type: { type: String, enum: ["quick", "webhook"], required: true },
     data: { type: Schema.Types.Mixed, default: null },
     error: { type: Schema.Types.Mixed, default: null },

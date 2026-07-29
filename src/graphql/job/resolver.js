@@ -118,7 +118,7 @@ export const jobResolvers = {
         }
     },
     Mutation: {
-        createCampaign: async (_, { name, channelId, leadIds, config = {}, scheduledAt = new Date(Date.now() + 10 * 60 * 1000) }, context, info) => {
+        createCampaign: async (_, { name, channelId, leadIds, config = { retries: 1 }, scheduledAt = new Date(Date.now() + 10 * 60 * 1000) }, context, info) => {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { projection, nested } = flattenFields(requestedFields);
             const channel = await Channel.findById(channelId, "_id name config provider apiAuthenticator").populate("provider").populate("apiAuthenticator");
