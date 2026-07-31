@@ -341,7 +341,7 @@ export const leadResolvers = {
             callDetails: {
               session: {
                 model: agentDetails?.personalInfo?.VoiceAgentSessionConfig?.model,
-                samplingRate: 8000,
+                samplingRate: 24000,
                 voice: agentDetails?.personalInfo?.VoiceAgentSessionConfig?.voice,
               }
             }
