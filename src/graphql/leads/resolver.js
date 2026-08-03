@@ -383,70 +383,75 @@ export const leadResolvers = {
       const created = [];
       const merged = [];
       const duplicatesRequiringMode = [];
-
+      const errors = [];
       for (const input of dataList) {
-        const {
-          templateId, name, contactDetails, lastInteractedAt, nextFollowUpAt,
-          source, tags, leadScore, status, notes, data, mode
-        } = input;
+        try {
+          const {
+            templateId, name, contactDetails, lastInteractedAt, nextFollowUpAt,
+            source, tags, leadScore, status, notes, data, mode
+          } = input;
 
-        const duplicateQuery = buildDuplicateQuery(contactDetails, businessId);
-        const existingLead = duplicateQuery ? await Lead.findOne(duplicateQuery) : null;
+          const duplicateQuery = buildDuplicateQuery(contactDetails, businessId);
+          const existingLead = duplicateQuery ? await Lead.findOne(duplicateQuery) : null;
 
-        if (existingLead) {
-          if (!mode || !['merge', 'new'].includes(mode)) {
-            // Don't throw — collect all conflicts and report at the end
-            const matched = findMatchedHandles(contactDetails, existingLead);
-            duplicatesRequiringMode.push({
-              input,
-              existingLeadId: existingLead._id,
-              matchedOn: matched,
-            });
-            continue;
-          }
-          if (mode === 'merge') {
-            const mergedContactDetails = mergeContactDetails(
-              existingLead.contactDetails?.toObject?.() || existingLead.contactDetails,
-              contactDetails
-            );
+          if (existingLead) {
+            if (!mode || !['merge', 'new'].includes(mode)) {
+              // Don't throw — collect all conflicts and report at the end
+              const matched = findMatchedHandles(contactDetails, existingLead);
+              duplicatesRequiringMode.push({
+                input,
+                existingLeadId: existingLead._id,
+                matchedOn: matched,
+              });
+              continue;
+            }
+            if (mode === 'merge') {
+              const mergedContactDetails = mergeContactDetails(
+                existingLead.contactDetails?.toObject?.() || existingLead.contactDetails,
+                contactDetails
+              );
 
-            const updated = await Lead.findByIdAndUpdate(
-              existingLead._id,
-              {
-                $set: {
-                  contactDetails: mergedContactDetails,
-                  ...(name && { name }),
-                  ...(source && { source }),
-                  ...(notes && { notes }),
-                  ...(leadScore != null && { leadScore }),
-                  ...(status && { status }),
-                  ...(lastInteractedAt && { lastInteractedAt }),
-                  ...(nextFollowUpAt && { nextFollowUpAt }),
-                  ...(data && { data: { ...existingLead.data, ...data } }),
+              const updated = await Lead.findByIdAndUpdate(
+                existingLead._id,
+                {
+                  $set: {
+                    contactDetails: mergedContactDetails,
+                    ...(name && { name }),
+                    ...(source && { source }),
+                    ...(notes && { notes }),
+                    ...(leadScore != null && { leadScore }),
+                    ...(status && { status }),
+                    ...(lastInteractedAt && { lastInteractedAt }),
+                    ...(nextFollowUpAt && { nextFollowUpAt }),
+                    ...(data && { data: { ...existingLead.data, ...data } }),
+                  },
+                  $addToSet: { tags: { $each: tags || [] } },
                 },
-                $addToSet: { tags: { $each: tags || [] } },
-              },
-              { new: true }
-            );
-            merged.push(updated);
-            continue;
+                { new: true }
+              );
+              merged.push(updated);
+              continue;
+            }
           }
+          const newLead = await Lead.create({
+            template: templateId,
+            contactDetails,
+            lastInteractedAt,
+            nextFollowUpAt,
+            name, source, tags, leadScore,
+            status: status || 'new',
+            notes, data,
+            business: businessId,
+            createdBy: context.user._id,
+          });
+          created.push(newLead);
+        } catch (error) {
+          console.error('Error creating lead input:', input);
+          console.error('Error creating lead error:', error);
+          errors.push({ input, error: error.message });
         }
-        const newLead = await Lead.create({
-          template: templateId,
-          contactDetails,
-          lastInteractedAt,
-          nextFollowUpAt,
-          name, source, tags, leadScore,
-          status: status || 'new',
-          notes, data,
-          business: businessId,
-          createdBy: context.user._id,
-        });
-        created.push(newLead);
       }
-
-      return { created, merged, duplicatesRequiringMode };
+      return { created, merged, duplicatesRequiringMode, errors };
     },
     // bulkUpdateLeads: async (_, { dataList }, context) => {
     //   const updated = [];
