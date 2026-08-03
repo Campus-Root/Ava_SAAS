@@ -86,7 +86,7 @@ type BulkCreateResult {
 type DuplicateConflict {
   input: JSON
   existingLeadId: ID
-  matchedOn: [String]
+  matchedOn: JSON
 }
 
 enum BulkConflictReason {
@@ -124,6 +124,10 @@ type BulkValidateSummary {
   existingDuplicates: Int!
   withinBatchDuplicates: Int!
 }
+enum BulkCreateMode {
+  merge
+  new
+}
 
   # ─── Inputs ──────────────────────────────────────────────────────────────────
 
@@ -138,6 +142,7 @@ type BulkValidateSummary {
   }
   """Input for creating or updating a lead"""
 input LeadCreateInput {
+  mode: enum
   templateId: ID
   contactDetails: JSON
   createdBy: ID
