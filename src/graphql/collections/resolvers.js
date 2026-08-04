@@ -5,7 +5,6 @@ import { User } from '../../models/User.js';
 import graphqlFields from 'graphql-fields';
 import { flattenFields, getSelectFields } from '../../utils/graphqlTools.js';
 import { Business } from '../../models/Business.js';
-import { sendMessageToRoom } from '../../utils/socketIoClient.js';
 import { cloudflareIntegration } from '../../services/cloudflare.js';
 import { llamaParser } from '../../services/llamaparse.js';
 import { firecrawlService } from '../../services/firecrawl.js';
