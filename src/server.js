@@ -18,7 +18,7 @@ import { generateMeetingUrl } from "./utils/tools.js";
 import { DateTime } from "luxon";
 import { Ticket } from "./models/Tickets.js";
 import { ensureWhatsAppWebhookSubscription } from './utils/whatsapp-app-bootstrap.js';
-const whitelist = ["https://www.avakado.ai", "https://api-builder-eight.vercel.app", "https://avakado.ai", "http://localhost:5174", "http://localhost:3000", "https://studio.apollographql.com", "https://app.avakado.ai", "https://api-builder-eight.vercel.app/"];
+const whitelist = ["https://ava-saas.onrender.com","https://www.avakado.ai", "https://api-builder-eight.vercel.app", "https://avakado.ai", "http://localhost:5174", "http://localhost:3000", "https://studio.apollographql.com", "https://app.avakado.ai", "https://api-builder-eight.vercel.app/"];
 export const corsOptions = {
     origin: (origin, callback) => (!origin || whitelist.indexOf(origin) !== -1) ? callback(null, true) : callback(new Error('Not allowed by CORS')),
     methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
