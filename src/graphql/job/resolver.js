@@ -216,7 +216,7 @@ export const jobResolvers = {
                             callDetails: {
                                 session: {
                                     model: agentDetails?.personalInfo?.VoiceAgentSessionConfig?.model,
-                                    samplingRate: 8000,
+                                    sampleRate: 24000,
                                     voice: agentDetails?.personalInfo?.VoiceAgentSessionConfig?.voice,
                                 }
                             },

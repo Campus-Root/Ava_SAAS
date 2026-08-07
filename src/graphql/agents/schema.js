@@ -18,11 +18,23 @@ export const agentTypeDefs = `#graphql
     """ Color scheme for quick questions on welcome screen """
     quickQuestionsWelcomeScreenBox: ColorBox
   }
+  type AgentPrompt {
+    role: String,
+    objective: String,
+    instructionsAndWorkflow: String,
+    constraintsAndRules: String
+  }
 
   """ Core information and settings that define the agent's behavior """
   type PersonalInfo {
     """ Display name of the agent """
     name: String
+    """ Description of the agent """
+    description: String
+    """ Avatar of the agent """
+    avatar: String
+    """ Prompt that defines the agent's role and behavior """
+    prompt: AgentPrompt
     """ Base prompt that defines the agent's role and behavior """
     systemPrompt: String
     """ Predefined questions users can quickly select """
@@ -82,9 +94,18 @@ export const agentTypeDefs = `#graphql
     quickQuestionsWelcomeScreenBox: ColorBoxInput
   }
 
+  input AgentPromptInput {
+    role: String,
+    objective: String,
+    instructionsAndWorkflow: String,
+    constraintsAndRules: String
+  }
   """ Input type for core agent settings """
   input AgentPersonalInfoInput {
     name: String
+    description: String,
+    avatar: String,
+    prompt: AgentPromptInput,
     systemPrompt: String
     quickQuestions: [QuickQuestionInput]
     welcomeMessage: String

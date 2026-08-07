@@ -150,6 +150,14 @@ const AgentSchema = new Schema({
     },
     personalInfo: {
         name: String,
+        description: String,
+        avatar: String,
+        prompt: {
+            role: String,
+            objective: String,
+            instructionsAndWorkflow: String,
+            constraintsAndRules: String
+        },
         systemPrompt: String,
         quickQuestions: [{ label: String, value: String }],
         welcomeMessage: String,
@@ -172,3 +180,138 @@ const AgentSchema = new Schema({
     timestamps: true
 });
 export const AgentModel = model('Agent', AgentSchema, "Agent");
+// const newAgentSchema = new Schema({
+//     // connections
+//     business: { type: Schema.Types.ObjectId, ref: 'Businesses' },
+//     createdBy: { type: Schema.Types.ObjectId, ref: 'Users' },
+//     isPublic: { type: Boolean, default: false },
+//     isFeatured: { type: Boolean, default: false },
+//     workflow: { type: Schema.Types.ObjectId, ref: 'Workflow' },
+//     collections: [{ type: Schema.Types.ObjectId, ref: 'Collection' }],
+//     channels: [{ type: Schema.Types.ObjectId, ref: 'Channel' }],
+//     actions: [{ type: Schema.Types.ObjectId, ref: 'Action' }],
+//     tool_choice: { type: String, enum: ['auto', 'none', 'required'], default: "auto" },
+
+//     //    identity
+//     appearance: {
+//         clientMessageBox: { backgroundColor: String, textColor: String },
+//         avaMessageBox: { backgroundColor: String, textColor: String },
+//         textInputBox: { backgroundColor: String, textColor: String },
+//         quickQuestionsWelcomeScreenBox: { backgroundColor: String, textColor: String }
+//     },
+//     personalInfo: {
+//         name: String,
+//         description: String,
+//         avatar: String,
+//         prompt: {
+//             role: String,
+//             objective: String,
+//             instructionsAndWorkflow: String,
+//             constraintsAndRules: String
+//         }
+//     },
+//     // brain
+//     // runtime: { type: String, enum: ['TURN_BASED', 'REALTIME', 'BACKGROUND'], default: 'TURN_BASED' }
+// }, { timestamps: true, discriminatorKey: 'runtime' });
+// const configOpts = { _id: false, strict: false };
+// const TurnBasedConfigSchema = new Schema({
+//     runtime: { type: String, default: 'TURN_BASED' },
+//     config: {
+//         provider: { type: String, enum: ['openai', 'google', 'anthropic'], default: 'openai' },
+//         model: {
+//             type: String,
+//             validate: {
+//                 validator: function (value) {
+//                     // return VoiceProviderConfig[this.provider]?.models.includes(value);  check the model value based on provider and runtime
+//                     return true;
+//                 }, message: props => `Invalid model for provider`
+//             }
+//         },
+//         temperature: { type: Number, default: 0.3 },
+//     }
+// }, configOpts);
+// const RealtimeConfigSchema = new Schema({
+//     runtime: { type: String, default: 'REALTIME' },
+//     config: {
+//         provider: { type: String, enum: ['openai', 'google', 'anthropic'], default: 'openai' },
+//         model: { type: String, validate: { validator: function (value) { return VoiceProviderConfig[this.provider]?.models.includes(value); }, message: props => `Invalid model for provider` } },
+//         temperature: { type: Number, default: 0.3 },
+        
+
+//     //     {
+//     //     "type": "realtime",
+//     //     audio: {
+//     //         input: {
+//     //             format: audioIpFormat,
+//     //             noise_reduction: { type: "near_field" },
+//     //             transcription: { model: "whisper-1" },
+//     //             turn_detection: {
+//     //                 type: "server_vad",
+//     //                 create_response: true,
+//     //                 interrupt_response: true,
+//     //                 prefix_padding_ms: agentDetails.personalInfo.VoiceAgentSessionConfig.advancedConfig.prefixPaddingMs,
+//     //                 silence_duration_ms: agentDetails.personalInfo.VoiceAgentSessionConfig.advancedConfig.silenceDurationMs,
+//     //                 threshold: 0.8
+//     //             }
+//     //         },
+//     //         output: {
+//     //             format: audioOpFormat,
+//     //             speed: 1.0,
+//     //             voice: agentDetails.personalInfo.VoiceAgentSessionConfig.voice || "alloy",
+//     //         }
+//     //     },
+//     //     instructions: instructions,
+//     //     model: agentDetails.personalInfo.VoiceAgentSessionConfig.model,
+//     //     output_modalities: ["audio"],
+//     //     tools: toolsJson.map(tool => ({ type: "function", ...tool })),
+//     //     tool_choice: agentDetails.tool_choice || "auto"
+//     // }
+
+
+// //  {
+// //     model: "models/" + agentDetails.personalInfo.VoiceAgentSessionConfig.model,
+// //     generationConfig: {
+// //         responseModalities: ["AUDIO"],
+// //         speechConfig: {
+// //             voiceConfig: {
+// //                 prebuiltVoiceConfig: {
+// //                     voiceName: agentDetails.personalInfo.VoiceAgentSessionConfig.voice || "Iapetus",
+// //                 }
+// //             }
+// //         }
+// //     },
+// //     proactivity: { proactiveAudio: true },
+// //     realtimeInputConfig: {
+// //         automaticActivityDetection: {
+// //             disabled: false, // default
+// //             startOfSpeechSensitivity: agentDetails.personalInfo.VoiceAgentSessionConfig.advancedConfig.startOfSpeechSensitivity,
+// //             endOfSpeechSensitivity: agentDetails.personalInfo.VoiceAgentSessionConfig.advancedConfig.endOfSpeechSensitivity,
+// //             prefixPaddingMs: agentDetails.personalInfo.VoiceAgentSessionConfig.advancedConfig.prefixPaddingMs,
+// //             silenceDurationMs: agentDetails.personalInfo.VoiceAgentSessionConfig.advancedConfig.silenceDurationMs,
+// //         }
+// //     },
+// //     inputAudioTranscription: {},
+// //     outputAudioTranscription: {},
+// //     systemInstruction: {
+// //         parts: [{
+// //             text: instructions
+// //         }]
+// //     },
+// //     tools: [{ functionDeclarations: toolsJson }]
+// // }
+
+
+//     }
+// }, configOpts);
+// const BackgroundConfigSchema = new Schema({
+//     runtime: { type: String, default: 'BACKGROUND' },
+//     config: {
+//         provider: { type: String, enum: ['openai', 'google', 'anthropic'], default: 'openai' },
+//         model: { type: String, validate: { validator: function (value) { return VoiceProviderConfig[this.provider]?.models.includes(value); }, message: props => `Invalid model for provider` } },
+//         temperature: { type: Number, default: 0.3 },
+//     }
+// }, configOpts);
+// export const NewAgentModel = model('NewAgent', newAgentSchema, "NewAgent");
+// newAgentSchema.discriminator('TURN_BASED', TurnBasedConfigSchema)
+// newAgentSchema.discriminator('REALTIME', RealtimeConfigSchema)
+// newAgentSchema.discriminator('BACKGROUND', BackgroundConfigSchema);

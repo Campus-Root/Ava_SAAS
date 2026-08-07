@@ -13,7 +13,7 @@ const MessagesSchema = new Schema({
     externalMessageId: String,
     direction: String,
     sender: {
-        type: { type: String, enum: ["Lead", "agent", "user", "system"], default: "Lead" },
+        type: { type: String, enum: ["Lead", "agent", "user", "system", "unknown"], default: "Lead" },
         id: String,
         name: String,
         ref: { type: Schema.Types.ObjectId, refPath: "sender.refModel" },
