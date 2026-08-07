@@ -23,6 +23,7 @@ import { fireAndForgetAxios } from "../../utils/fireAndForget.js";
 import { normalizePhoneNumber } from "../../utils/setup.js";
 import axios from "axios";
 import mongoose from "mongoose";
+import { CallSession } from "../../models/CallSessions.js";
 
 export const leadResolvers = {
   Query: {
