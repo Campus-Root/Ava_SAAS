@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { openCors } from '../middleware/openCors.js';
 import { sendMail } from '../utils/email.js';
 import { Ticket } from '../models/Tickets.js';
 import { AgentModel } from '../models/Agent.js';
 import { buildUrlWithParams, getCallSessionForIncomingCall, getCallSessionForOutboundDial } from '../utils/CallSessions.js';
+import { openCors } from '../server.js';
 export const builtInRoutes = Router();
 builtInRoutes.get('/', (_, res) => res.status(200).send('Server running'));
 builtInRoutes.get('/exotel-redirect', async (request, reply) => {

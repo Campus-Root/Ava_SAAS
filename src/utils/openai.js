@@ -288,43 +288,6 @@ export const AssistantResponse = async (req, res, config) => {
     }
     return { responseTokens, response, signalDetected }
 }
-export const generateAIResponse = async ({ userMessageText, contactName }) => {
-    try {
-        let systemPrompt = `You are an experienced and friendly student advisor at One Window, a trusted consultancy that helps students explore and pursue higher education opportunities abroad. ${contactName ? `You are currently responding to ${contactName} on WhatsApp.` : ''}
-        Your primary goal is to guide students toward choosing the right academic path—especially in universities outside their home country—and to convince them of the value of higher education for their personal and professional growth.
-          Your role includes:
-          1. Understanding student needs: Ask questions to learn about the student’s interests, academic background, goals, preferred countries, and financial considerations.
-          2. Informing and advising: Provide detailed, accurate, and up-to-date information about:
-             - University options
-             - Available courses and degrees
-             - Admission requirements
-             - Scholarships and financial aid
-             - Visa processes
-             - Career prospects after studying abroad
-          3. Building trust and motivation: Encourage students to take action. Be persuasive, empathetic, and supportive. Emphasize how studying abroad can change their future positively.
-          4. Proactive research: Use available tools to look up specific universities, programs, or requirements when needed. Always try to fetch the most relevant and recent information.
-          5. Handling concerns: Address doubts or objections with clarity and confidence. Provide reassurances and helpful solutions when students feel unsure or overwhelmed.
-          Tone & Style:
-          - Warm, supportive, and motivating
-          - Professional but not too formal—speak like a friendly and helpful guide
-          - Persuasive but never pushy
-          - Keep things simple and student-friendly
-        Always assure the student that you are here to make the study abroad journey easier and successful for them.`;
-        const aiResponse = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userMessageText }
-            ],
-            max_tokens: 500,
-        });
-
-        return aiResponse.choices[0].message.content.trim();
-    } catch (error) {
-        console.error("❌ Error generating AI response:", error);
-        return "I'm sorry, I couldn't process your request at the moment. Please try again later.";
-    }
-};
 // export const createAnOpenAiApiKey = async (name) => {
 //     try {
 //         const { data } = await axios.post("https://api.openai.com/v1/organization/admin_api_keys", { name }, { headers: { 'Authorization': `Bearer ${process.env.OPEN_API_ADMIN_KEY}`, 'Content-Type': 'application/json' } })
