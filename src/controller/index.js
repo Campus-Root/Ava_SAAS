@@ -3,7 +3,6 @@ import { sendMail } from '../utils/sendEmail.js';
 import { Ticket } from '../models/Tickets.js';
 import { AgentModel } from '../models/Agent.js';
 import { buildUrlWithParams, getCallSessionForIncomingCall, getCallSessionForOutboundDial } from '../utils/CallSessions.js';
-import { openCors } from '../server.js';
 export const builtInRoutes = Router();
 builtInRoutes.get('/', (_, res) => res.status(200).send('Server running'));
 builtInRoutes.get('/exotel-redirect', async (request, reply) => {
@@ -39,7 +38,7 @@ builtInRoutes.get('/exotel-redirect', async (request, reply) => {
     }
 
 })
-builtInRoutes.post('/contact-us', openCors, async (req, res) => {
+builtInRoutes.post('/contact-us', async (req, res) => {
     try {
         const { name, contactDetails, purpose } = req.body;
         if (!name || !contactDetails || !purpose) return res.status(400).json({ error: 'Missing required fields' });
@@ -68,7 +67,7 @@ builtInRoutes.post('/contact-us', openCors, async (req, res) => {
         return res.status(500).json({ success: false, error: error.message, message: 'Internal server error' });
     }
 })
-builtInRoutes.post("/raise-ticket", openCors, async (req, res) => {
+builtInRoutes.post("/raise-ticket", async (req, res) => {
     try {
         const { business, issueSummary, channel, priority, contactDetails, notifierEmail } = req.body;
         await Ticket.create({ business, issueSummary, channel, priority, contactDetails, notifierEmail });
