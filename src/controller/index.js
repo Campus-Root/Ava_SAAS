@@ -3,6 +3,8 @@ import { sendMail } from '../utils/sendEmail.js';
 import { Ticket } from '../models/Tickets.js';
 import { AgentModel } from '../models/Agent.js';
 import { buildUrlWithParams, getCallSessionForIncomingCall, getCallSessionForOutboundDial } from '../utils/CallSessions.js';
+import { Channel } from '../models/Channels.js';
+import { Lead } from '../models/Leads.js';
 export const builtInRoutes = Router();
 builtInRoutes.get('/', (_, res) => res.status(200).send('Server running'));
 builtInRoutes.get('/exotel-redirect', async (request, reply) => {
@@ -38,6 +40,17 @@ builtInRoutes.get('/exotel-redirect', async (request, reply) => {
     }
 
 })
+builtInRoutes.get('/initiate-conversation', async (req, res) => {
+    const { channelId, externalConversationId, leadId } = req.query;
+    const channel = await Channel.findById(channelId, { business: 1, agent: 1, _id: 1 })
+    if (!channel) return res.status(404).json({ message: 'Channel not found' });
+    const agent = await AgentModel.findOne({ channels: { $in: [channel._id] } }, { _id: 1 })
+    if (!agent) return res.status(404).json({ message: 'Agent not found' });
+    let lead = await Lead.findById(leadId);
+    if (!lead) lead = await Lead.create({ business: channel.business, name: "Anonymous", source: "webchat", tags: ["webchat"] });
+    const conversation = await Conversation.create({ business: channel.business, channel: channel._id, agent: agent._id, externalConversationId, lead: lead._id });
+    res.status(200).json({ success: true, data: conversation });
+});
 builtInRoutes.post('/contact-us', async (req, res) => {
     try {
         const { name, contactDetails, purpose } = req.body;

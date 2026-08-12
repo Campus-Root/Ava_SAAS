@@ -74,7 +74,7 @@ export const createApp = async () => {
         app.use(express.urlencoded({ limit: '50mb', extended: true }));
         app.use(bodyParser.urlencoded({ extended: true }));
         // Routes
-        app.use('/', builtInRoutes);
+        app.use('/', openCors, builtInRoutes);
         // Error handling
         try {
             app.use(errorHandlerMiddleware);
