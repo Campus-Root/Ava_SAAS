@@ -13,7 +13,6 @@ import 'dotenv/config'
 // weighted imports
 import { Message } from "./models/Messages.js";
 import ical, { ICalCalendarMethod } from 'ical-generator';
-import { sendEmail, sendMail } from "./utils/sendEmail.js";
 import { generateMeetingUrl } from "./utils/tools.js";
 import { DateTime } from "luxon";
 import { Ticket } from "./models/Tickets.js";

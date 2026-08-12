@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { sendMail } from '../utils/email.js';
+import { sendMail } from '../utils/sendEmail.js';
 import { Ticket } from '../models/Tickets.js';
 import { AgentModel } from '../models/Agent.js';
 import { buildUrlWithParams, getCallSessionForIncomingCall, getCallSessionForOutboundDial } from '../utils/CallSessions.js';
