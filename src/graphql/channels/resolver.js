@@ -43,9 +43,14 @@ export const channelResolvers = {
     },
     Mutation: {
         async createChannel(_, { input }, context, info) {
-            const { name, apiAuthenticator, systemPrompt, isPublic, UIElements, type, config = {} } = input;
+            const { name, runtime = 'TURN_BASED', apiAuthenticator, systemPrompt, isPublic, UIElements, type, config = {} } = input;
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { rootFields, populateFields } = getSelectFields(requestedFields.data);
+            if (type == 'website') {
+                const channel = await Channel.create({ name, business: context.user.business, runtime: 'TURN_BASED', status: "enabled", systemPrompt, isPublic, UIElements, type, config })
+                await Business.populate(channel, { path: 'business', select: populateFields.business });
+                return channel;
+            }
             const apiAuthenticatorDoc = await ApiAuthenticators.findById(apiAuthenticator);
             if (!apiAuthenticatorDoc) throw new GraphQLError('ApiAuthenticator not found', { extensions: { code: 'INVALID_INPUT' } });
             const provider = await Providers.findById(apiAuthenticatorDoc.provider);
@@ -53,7 +58,7 @@ export const channelResolvers = {
             const serviceProvider = PROVIDER_MAP[provider.name];
             if (!serviceProvider) throw new GraphQLError('ServiceProvider not found', { extensions: { code: 'INVALID_INPUT' } });
             const channel = await Channel.create({ name, business: context.user.business, apiAuthenticator: apiAuthenticatorDoc._id, provider: provider._id, status: "enabled", systemPrompt, isPublic, UIElements, type })
-            const { success, config: restConfigurations, error, externalId = "" } = await serviceProvider.setupChannel({ apiAuthenticator: apiAuthenticatorDoc, providerName: provider.name, channelId: channel._id, config });
+            const { success, config: restConfigurations, error, externalId = "" } = await serviceProvider.setupChannel({ apiAuthenticator: apiAuthenticatorDoc, providerName: provider.name, channelId: channel._id, config, runtime });
             if (!success) throw new GraphQLError('Failed to setup channel', { extensions: { code: 'INVALID_INPUT', error } });
             channel.config = { ...config, ...restConfigurations };
             channel.externalId = externalId;

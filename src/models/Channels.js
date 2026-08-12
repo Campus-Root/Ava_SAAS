@@ -229,6 +229,7 @@ const ChannelBaseSchema = new Schema(
         provider: { type: Schema.Types.ObjectId, ref: 'Providers' },
         apiAuthenticator: { type: Schema.Types.ObjectId, ref: 'ApiAuthenticators' },
         type: { type: String, enum: ["whatsapp", "telegram", "web", "phone", "instagram", "sms", "email"] },
+        runtime: { type: String, enum: ['TURN_BASED', 'REALTIME'], default: 'TURN_BASED' },
         config: { type: Schema.Types.Mixed, default: {} },
         externalId: String,
         status: { type: String, default: 'disabled' },   // enabled | disabled | error

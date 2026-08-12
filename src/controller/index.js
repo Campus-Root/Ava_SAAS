@@ -1,0 +1,81 @@
+import { Router } from 'express';
+import { openCors } from '../middleware/openCors.js';
+import { sendMail } from '../utils/email.js';
+import { Ticket } from '../models/Tickets.js';
+import { AgentModel } from '../models/Agent.js';
+import { buildUrlWithParams, getCallSessionForIncomingCall, getCallSessionForOutboundDial } from '../utils/CallSessions.js';
+export const builtInRoutes = Router();
+builtInRoutes.get('/', (_, res) => res.status(200).send('Server running'));
+builtInRoutes.get('/exotel-redirect', async (request, reply) => {
+    const { channelId, CallSid, CallFrom, CallTo, Direction, CustomField = "{}" } = request.query;
+    console.log(JSON.stringify({ query: request.query }, null, 2))
+    const agent = await AgentModel.findOne({ channels: channelId }).populate("business actions");
+    if (!agent) {
+        console.error("❌", "Agent not found");
+        return reply.status(404).send('Agent not found');
+    }
+    let businessId = agent.business._id, agentId = agent._id;
+    let callSession = null;
+    try {
+        switch (Direction) {
+            case 'outbound-dial':
+            case 'outbound-api':
+                callSession = await getCallSessionForOutboundDial(request.query);
+                break;
+            case 'incoming':
+                callSession = await getCallSessionForIncomingCall({ CallSid, CallTo, CallFrom, Direction, businessId, channelId, agentId, CustomField }, request.query);
+                break;
+            default: return reply.status(400).send('Invalid direction');
+        }
+        if (!callSession) {
+            console.error("❌", "Call session not found");
+            return reply.status(404).send('Call session not found');
+        }
+        const wssUrl = buildUrlWithParams("wss://sockets.avakado.ai/media-stream", { callSessionId: callSession._id, model: callSession.callDetails.session.model, "sample-rate": callSession.callDetails.session.sampleRate });
+        return reply.type('application/json').send({ url: wssUrl });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, error: error.message, message: 'Internal server error' });
+    }
+
+})
+builtInRoutes.post('/contact-us', openCors, async (req, res) => {
+    try {
+        const { name, contactDetails, purpose } = req.body;
+        if (!name || !contactDetails || !purpose) return res.status(400).json({ error: 'Missing required fields' });
+        const { email, phone } = contactDetails;
+        if (!email && !phone) return res.status(400).json({ error: 'At least one contact detail (email or phone) is required' });
+        const subject = `New Contact Request from ${name}`;
+        const text = ` New contact form submission:
+                Name: ${name}
+                Email: ${email || 'N/A'}
+                Phone: ${phone || 'N/A'}
+                Purpose: ${purpose}`.trim();
+        const html = `
+    <h2>New Contact Form Submission</h2>
+    <p><strong>Name:</strong> ${name}</p>
+    <p><strong>Email:</strong> ${email || 'N/A'}</p>
+    <p><strong>Phone:</strong> ${phone || 'N/A'}</p>
+    <p><strong>Purpose:</strong><br>${purpose}</p>
+`;
+        Promise.all([
+            // await Lead.create({ name, purpose, contactDetails: { email: email || null, phone: phone || null } }),
+            await sendMail({ to: "ankit@onewindow.co anurag@onewindow.co vishnu.teja101.vt@gmail.com", subject, text, html })
+        ]);
+        return res.json({ success: true, message: 'we will get back to you soon', data: null });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, error: error.message, message: 'Internal server error' });
+    }
+})
+builtInRoutes.post("/raise-ticket", openCors, async (req, res) => {
+    try {
+        const { business, issueSummary, channel, priority, contactDetails, notifierEmail } = req.body;
+        await Ticket.create({ business, issueSummary, channel, priority, contactDetails, notifierEmail });
+        return res.status(201).json({ message: "ticket raised successfully" });
+    } catch (err) {
+        console.error(err);
+        res.status(400).json({ error: err.message });
+    }
+})
+

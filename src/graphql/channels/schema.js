@@ -5,6 +5,8 @@ type Channel {
   _id: ID!
   """Display name of the channel"""
   name: String!
+    """Runtime of the channel"""
+    runtime: ChannelRuntimeEnum
   """ID of the business that owns this channel"""
     business: Business
   provider: Provider
@@ -56,11 +58,16 @@ type Query {
   @param id - ID of the channel"""
   channelSettingMethods(id: ID!): JSON @requireScope(scope: "channel:read") @requireBusinessAccess
 }
-
+enum ChannelRuntimeEnum {
+  TURN_BASED
+  REALTIME
+}
 """Input type for creating/updating channels"""
 input ChannelInput {
   """Display name of the channel"""
   name: String
+  """Runtime of the channel"""
+  runtime: ChannelRuntimeEnum
   """ID of the api authenticator that this channel is associated with"""
   apiAuthenticator: ID
   """Base prompt that defines how the agent behaves"""
