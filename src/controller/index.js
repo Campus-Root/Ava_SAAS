@@ -32,7 +32,7 @@ builtInRoutes.get('/exotel-redirect', async (request, reply) => {
             console.error("❌", "Call session not found");
             return reply.status(404).send('Call session not found');
         }
-        const wssUrl = buildUrlWithParams("wss://8e54-59-180-9-169.ngrok-free.app/media-stream", { callSessionId: callSession._id, model: callSession.callDetails.session.model, "sample-rate": callSession.callDetails.session.sampleRate });
+        const wssUrl = buildUrlWithParams("wss://0042-59-180-9-169.ngrok-free.app/media-stream", { callSessionId: callSession._id, model: callSession.callDetails.session.model, "sample-rate": callSession.callDetails.session.sampleRate });
         console.log("🚀 ~ builtInRoutes.get ~ wssUrl:", wssUrl)
         return reply.type('application/json').send({ url: wssUrl });
     } catch (error) {
