@@ -9,7 +9,7 @@ export const builtInRoutes = Router();
 builtInRoutes.get('/', (_, res) => res.status(200).send('Server running'));
 builtInRoutes.get('/exotel-redirect', async (request, reply) => {
     const { channelId, CallSid, CallFrom, CallTo, Direction, CustomField = "{}" } = request.query;
-    console.log(JSON.stringify({ query: request.query }, null, 2))
+    // console.log(JSON.stringify({ query: request.query }, null, 2))
     const agent = await AgentModel.findOne({ channels: channelId }).populate("business actions");
     if (!agent) {
         console.error("❌", "Agent not found");
@@ -33,6 +33,7 @@ builtInRoutes.get('/exotel-redirect', async (request, reply) => {
             return reply.status(404).send('Call session not found');
         }
         const wssUrl = buildUrlWithParams("wss://sockets.avakado.ai/media-stream", { callSessionId: callSession._id, model: callSession.callDetails.session.model, "sample-rate": callSession.callDetails.session.sampleRate });
+        console.log("🚀 ~ builtInRoutes.get ~ wssUrl:", wssUrl)
         return reply.type('application/json').send({ url: wssUrl });
     } catch (error) {
         console.error(error);
