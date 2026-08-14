@@ -106,7 +106,7 @@ const openaiResponseConfigSchema = new Schema({
         },
         output: {
             speed: { type: Number, min: 0.25, max: 2.0, default: 1.0 },
-            voice: { type: String, validate: { validator: function (value) { return VoiceProviderConfig.openai?.voices.includes(value); }, message: props => `Invalid voice for openai` } },
+            voice: { type: String, validate: { validator: function (value) { return ProviderConfig.openai?.voices.includes(value); }, message: props => `Invalid voice for openai` } },
         }
     }
 }, { _id: false });
@@ -127,7 +127,7 @@ const geminiResponseConfigSchema = new Schema({
     },
     realtimeOutputConfig: {
         speed: { type: Number, min: 0.25, max: 2.0, default: 1.0 },
-        voice: { type: String, validate: { validator: function (value) { return VoiceProviderConfig.gemini?.voices.includes(value); }, message: props => `Invalid voice for openai` } },
+        voice: { type: String, validate: { validator: function (value) { return ProviderConfig.gemini?.voices.includes(value); }, message: props => `Invalid voice for openai` } },
     },
     inputAudioTranscription: Schema.Types.Mixed,
     outputAudioTranscription: Schema.Types.Mixed,

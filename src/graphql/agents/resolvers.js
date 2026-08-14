@@ -148,7 +148,9 @@ export const agentResolvers = {
             if (foundChannels.length !== channels.length) throw new GraphQLError("Channel not found", { extensions: { code: "CHANNEL_NOT_FOUND" } });
             if (foundCollections.length !== collections.length) throw new GraphQLError("Collection not found", { extensions: { code: "COLLECTION_NOT_FOUND" } });
             if (foundActions.length !== actions.length) throw new GraphQLError("Action not found", { extensions: { code: "ACTION_NOT_FOUND" } });
+            console.log("agent", JSON.stringify(agent, null, 2));
             const updatedAgent = await AgentModel.findByIdAndUpdate(id, { ...agent, updatedAt: new Date() }, { new: true });
+            console.log("updatedAgent", JSON.stringify(updatedAgent, null, 2));
             await Business.populate(updatedAgent, { path: 'business', select: nested.business });
             await Workflow.populate(updatedAgent, { path: 'workflow', select: nested.workflow });
             await User.populate(updatedAgent, { path: 'createdBy', select: nested.createdBy });
