@@ -48,7 +48,6 @@ export const jobResolvers = {
         validateCampaign: async (_, { channelId, leadIds, config = {} }, context, info) => {
             const channel = await Channel.findById(channelId, "_id name config provider apiAuthenticator").populate("provider").populate("apiAuthenticator");
             if (!channel) throw new GraphQLError("Channel not found");
-            console.log("channel.provider.name:", channel.provider.name);
             let leadErrors = [];
             switch (channel.provider.name) {
                 case "Whatsapp": {
@@ -57,7 +56,6 @@ export const jobResolvers = {
                     const { template: { templateName, languageCode, parametersMap = [] } } = config;
                     if (!templateName || !languageCode) throw new GraphQLError("templateName, languageCode are required");
                     // stack all lead errors and return them in a single array
-
                     for (const leadId of leadIds) {
                         let lead = await Lead.findById(leadId);
                         if (!lead) {
@@ -78,6 +76,7 @@ export const jobResolvers = {
                             continue;
                         }
                     }
+                    break;
                 }
                 case "Exotel": {
                     const { exophone, appId } = channel.config;
@@ -109,7 +108,9 @@ export const jobResolvers = {
                             leadErrors.push({ leadId, error: "Invalid phone number of leadId: " + leadId });
                             continue;
                         }
+
                     }
+                    break;
                 }
                 default:
                     throw new GraphQLError("Invalid channel provider", { extensions: { code: "INVALID_CHANNEL_PROVIDER" } });
