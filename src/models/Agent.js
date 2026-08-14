@@ -115,6 +115,7 @@ const geminiResponseConfigSchema = new Schema({
     modality: [{ type: String, enum: ProviderConfig.gemini?.REALTIME?.modalities, default: ProviderConfig.gemini?.REALTIME?.modalities[0] }],
     wssUrl: { type: String, default: ProviderConfig.gemini?.REALTIME?.wssUrl },
     proactivity: { proactiveAudio: { type: Boolean, default: true } },
+    enableAffectiveDialog: { type: Boolean, default: true },
     realtimeInputConfig: {
         automaticActivityDetection: {
             disabled: { type: Boolean, default: false },
