@@ -1,8 +1,0 @@
-{
-  "to": "recipient@example.com",
-  "subject": "AVA Platform Test Email",
-  "text": "This is a plain-text test email from the AVA test fixtures.",
-  "html": "<p>This is a <strong>HTML</strong> test email from the AVA test fixtures.</p>",
-  "attachments": [],
-  "_meta": { "method": "POST", "endpoint": "/send-mail", "auth": "none", "requires": "EMAIL_SMTP_* env vars" }
-}

@@ -7,17 +7,7 @@ export const agentTypeDefs = `#graphql
     textColor: String
   }
 
-  """ Visual appearance configuration for the agent's UI """
-  type Appearance {
-    """ Color scheme for client/user messages """
-    clientMessageBox: ColorBox
-    """ Color scheme for agent/bot messages """
-    avaMessageBox: ColorBox
-    """ Color scheme for the text input area """
-    textInputBox: ColorBox
-    """ Color scheme for quick questions on welcome screen """
-    quickQuestionsWelcomeScreenBox: ColorBox
-  }
+
   type AgentPrompt {
     role: String,
     objective: String,
@@ -33,29 +23,32 @@ export const agentTypeDefs = `#graphql
     description: String
     """ Avatar of the agent """
     avatar: String
-    """ Prompt that defines the agent's role and behavior """
-    prompt: AgentPrompt
     """ Base prompt that defines the agent's role and behavior """
-    systemPrompt: String
-    """ Predefined questions users can quickly select """
-    quickQuestions: [QuickQuestion]
-    """ Initial message shown to users """
-    welcomeMessage: String
-    """ AI model to be used (e.g. GPT-3, GPT-4) """
-    model: String
-    """ Creativity/randomness parameter for responses (0-1) """
-    temperature: Float
-     VoiceAgentSessionConfig: JSON,
+    systemPrompt: AgentPrompt
+  }
+
+  enum AgentRuntimeEnum {
+    TURN_BASED
+    REALTIME
+    BACKGROUND
+  }
+  type ModelConfig {
+    provider: String
+    customProviderRef: String,
+    providerData: JSON,
+    model: String,
+    modelSettings: JSON
   }
 
   """ Main agent type containing all agent properties """
   type Agent {
     """ Unique identifier """
     _id: ID!
-    """ Visual customization settings """
-    appearance: Appearance
     """ Core agent configuration """
     personalInfo: PersonalInfo
+    runtime: AgentRuntimeEnum
+    modelConfig: ModelConfig
+    responseConfig: JSON
     """ Associated knowledge collections """
     collections: [Collection]
     """ Associated workflow """
@@ -86,13 +79,6 @@ export const agentTypeDefs = `#graphql
     textColor: String
   }
 
-  """ Input type for appearance settings """
-  input AppearanceInput {
-    clientMessageBox: ColorBoxInput
-    avaMessageBox: ColorBoxInput
-    textInputBox: ColorBoxInput
-    quickQuestionsWelcomeScreenBox: ColorBoxInput
-  }
 
   input AgentPromptInput {
     role: String,
@@ -105,10 +91,7 @@ export const agentTypeDefs = `#graphql
     name: String
     description: String,
     avatar: String,
-    prompt: AgentPromptInput,
-    systemPrompt: String
-    quickQuestions: [QuickQuestionInput]
-    welcomeMessage: String
+    systemPrompt: AgentPromptInput
     model: String
     temperature: Float
     VoiceAgentSessionConfig:JSON
@@ -116,8 +99,10 @@ export const agentTypeDefs = `#graphql
 
   """ Input type for creating/updating agents """
   input AgentInput {
-    appearance: AppearanceInput
     personalInfo: AgentPersonalInfoInput
+    runtime: AgentRuntimeEnum
+    modelConfig: JSON
+    responseConfig: JSON
     collections: [ID]
     workflow: ID
     channels: [ID]

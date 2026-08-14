@@ -1,6 +1,0 @@
-{
-  "operationName": "FetchMessages",
-  "query": "query FetchMessages($conversationId: ID!, $limit: Int, $page: Int) { fetchMessages(conversationId: $conversationId, limit: $limit, page: $page) { _id query response reaction createdAt } }",
-  "variables": { "conversationId": "{{CONVERSATION_ID}}", "limit": 50, "page": 1 },
-  "_meta": { "auth": "Bearer {{ACCESS_TOKEN}}", "scope": "conversation:read" }
-}

@@ -30,7 +30,6 @@ import mongoose from 'mongoose';
 const objectIdValidator = string().test('is-valid-objectId', 'Invalid ObjectId', (value) => mongoose.Types.ObjectId.isValid(value));
 export const agentSchema = object({
     collections: array().of(objectIdValidator),
-    appearance: object().optional(),
     personalInfo: object().optional(),
     tools: array().optional(),
     // actions: array().of(objectIdValidator).optional(),

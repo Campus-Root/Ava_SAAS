@@ -1,9 +1,0 @@
-{
-  "documentType": "markdown-text",
-  "collectionSource": "text",
-  "content": "# Product FAQ\n\n## What is Avakado?\nAvakado is an AI agent SaaS platform.\n\n## Pricing\n- **Free**: 100 LLM credits\n- **Base**: 10,000 credits/month\n\n## Support\nEmail support@avakado.ai for help.",
-  "chunkingDetails": {
-    "strategy": "recursiveSemantic",
-    "tunables": { "chunkSize": 256 }
-  }
-}

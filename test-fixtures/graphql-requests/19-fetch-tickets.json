@@ -1,6 +1,0 @@
-{
-  "operationName": "FetchTickets",
-  "query": "query FetchTickets($status: statusEnum, $priority: priorityEnum) { fetchTickets(status: $status, priority: $priority) { _id issueSummary channel priority status notifierEmail contactDetails { email phone } createdAt } }",
-  "variables": { "status": "pending", "priority": "medium" },
-  "_meta": { "auth": "Bearer {{ACCESS_TOKEN}}", "scope": "ticket:read" }
-}

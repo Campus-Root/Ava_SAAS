@@ -1,9 +1,0 @@
-{
-  "name": "Jane Prospect",
-  "contactDetails": {
-    "email": "jane.prospect@example.com",
-    "phone": "+14155559999"
-  },
-  "purpose": "I would like a demo of the AI agent platform for our sales team.",
-  "_meta": { "method": "POST", "endpoint": "/contact-us", "auth": "none" }
-}

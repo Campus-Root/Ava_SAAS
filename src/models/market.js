@@ -27,17 +27,14 @@ export const Template = model('StandardProduct', TemplateBaseSchema, 'StandardPr
 /* ───────────────────────────── Agent Template ──────────────────────────── */
 const AgentData = new Schema(
     {
-        appearance: {
-            clientMessageBox: { backgroundColor: String, textColor: String },
-            avaMessageBox: { backgroundColor: String, textColor: String },
-            textInputBox: { backgroundColor: String, textColor: String },
-            quickQuestionsWelcomeScreenBox: { backgroundColor: String, textColor: String }
-        },
         personalInfo: {
             name: String,
-            systemPrompt: String,
-            quickQuestions: [{ label: String, value: String }],
-            welcomeMessage: String,
+            systemPrompt: {
+                role: String,
+                objective: String,
+                instructionsAndWorkflow: String,
+                constraintsAndRules: String
+            },
             model: { type: String, default: 'gpt-4.1-mini' },
             temperature: { type: Number, default: 0.5 },
         },

@@ -1,7 +1,0 @@
-{
-  "_id": "665a1b2c3d4e5f6a7b8c9d80",
-  "metaData": { "name": "Twilio Production", "type": "twilio", "purpose": "SMS and Voice" },
-  "config": { "AccountSid": "ACxxxxxxxx", "state": "authorized" },
-  "isActive": true,
-  "business": "665a1b2c3d4e5f6a7b8c9d03"
-}

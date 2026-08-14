@@ -1,6 +1,0 @@
-{
-  "operationName": "FetchPublicPlans",
-  "query": "query FetchPublicPlans { fetchPublicPlans { _id code name description type validity price credits { llm knowledge miscellaneous } features status } }",
-  "variables": {},
-  "_meta": { "auth": "none", "description": "List subscription plans without authentication" }
-}
