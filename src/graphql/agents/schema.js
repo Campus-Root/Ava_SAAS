@@ -59,8 +59,6 @@ export const agentTypeDefs = `#graphql
     actions: [Action]
     """ Business that owns this agent """
     business: Business
-    """ Performance and usage metrics """
-    analysisMetrics: JSON
     """ User who created the agent """
     createdBy: User
     """ Whether the agent is publicly accessible """
@@ -107,7 +105,6 @@ export const agentTypeDefs = `#graphql
     workflow: ID
     channels: [ID]
     actions: [ID]
-    analysisMetrics: JSON
     isPublic: Boolean
     isFeatured: Boolean
   }

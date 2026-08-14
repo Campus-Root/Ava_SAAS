@@ -153,7 +153,6 @@ const AgentSchema = new Schema({
     actions: [{ type: Schema.Types.ObjectId, ref: 'Action' }],
     tool_choice: { type: String, enum: ['auto', 'none', 'required'], default: "auto" },
     business: { type: Schema.Types.ObjectId, ref: 'Businesses' },
-    analysisMetrics: Schema.Types.Mixed,
     facets: [String],
     createdBy: { type: Schema.Types.ObjectId, ref: 'Users' },
     isPublic: { type: Boolean, default: false },

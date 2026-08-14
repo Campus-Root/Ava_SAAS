@@ -40,7 +40,6 @@ const AgentData = new Schema(
         },
         collections: [{ type: Schema.Types.ObjectId, ref: 'Collection' }],
         actions: [{ type: Schema.Types.ObjectId, ref: 'StandardProduct' }],
-        analysisMetrics: Schema.Types.Mixed,
         facets: [String],
     },
     baseOpts

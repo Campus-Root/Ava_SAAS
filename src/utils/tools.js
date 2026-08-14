@@ -272,7 +272,6 @@ export const buildJSONSchema = (def) => {
     }
     return schema;
 }
-export const defaultAnalysisMetrics = {}
 
 export const buildComponents = (parametersMap, data) => {
     return parametersMap.map(component => ({
