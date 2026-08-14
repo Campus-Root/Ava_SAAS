@@ -61,9 +61,9 @@ export const getCallSessionForIncomingCall = async ({ CallSid, CallTo, CallFrom,
         statusTimeline: { initiatedAt: new Date(), ringingAt: new Date() },
         callDetails: {
             session: {
-                model: agent.personalInfo.VoiceAgentSessionConfig.model,
+                model: agent.modelConfig.model,
                 sampleRate: 24000,
-                voice: agent.personalInfo.VoiceAgentSessionConfig.voice,
+                voice: agent.responseConfig.audio.output.voice || agent.responseConfig.realtimeOutputConfig.voice,
             }
         },
         sequenceOfEvents: [requestBody]

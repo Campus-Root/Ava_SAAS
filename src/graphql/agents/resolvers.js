@@ -42,7 +42,9 @@ export const agentResolvers = {
                     };
                     const agentDetails = await AgentModel.findOne(filter).select({ personalInfo: 1 });
                     if (!agentDetails) throw new GraphQLError("Agent not found", { extensions: { code: "NOT_FOUND" } });
-                    const { model: dbModel, provider: dbProvider, voice: dbVoice, } = agentDetails.personalInfo.VoiceAgentSessionConfig;
+                    const dbModel = agentDetails.modelConfig.model;
+                    const dbProvider = agentDetails.modelConfig.provider;
+                    const dbVoice = agentDetails.responseConfig.audio.output.voice;
                     sessionConfig = { model: dbModel, provider: dbProvider, voice: dbVoice };
                 } else {
                     throw new GraphQLError("Either (model, voice, provider) or id must be provided.", { extensions: { code: "BAD_REQUEST" } });

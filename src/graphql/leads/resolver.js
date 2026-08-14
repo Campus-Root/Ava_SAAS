@@ -341,9 +341,9 @@ export const leadResolvers = {
             statusTimeline: { initiatedAt: new Date() },
             callDetails: {
               session: {
-                model: agentDetails?.personalInfo?.VoiceAgentSessionConfig?.model,
+                model: agentDetails?.modelConfig?.model,
                 sampleRate: 24000,
-                voice: agentDetails?.personalInfo?.VoiceAgentSessionConfig?.voice,
+                voice: agentDetails?.responseConfig?.audio?.output?.voice || agentDetails?.responseConfig.realtimeOutputConfig?.voice,
               }
             }
           });

@@ -98,7 +98,8 @@ export const twilioResolvers = {
                 if (!agentDetails) new GraphQLError("invalid Agent model", { extensions: { code: "INVALID_AGENT_ID" } })
                 if (!channel) new GraphQLError("invalid channelId", { extensions: { code: "INVALID_CHANNEL_ID" } })
                 const service = new TwilioService(channel.config.integration.config.AccountSid, TWILIO_AUTH_TOKEN);
-                const { model, provider } = agentDetails.personalInfo.VoiceAgentSessionConfig;
+                const model = agentDetails?.modelConfig?.model;
+                const provider = agentDetails?.modelConfig?.provider;
                 const conversation = await Conversation.create({campaign:campaignId, business: channel.business, channel: channel.type, channelFullDetails: channelId, agent: agentId, PreContext, contact: { phone: to }, metadata: { status: "initiated" }, workflow: channel?.workflow || agentDetails.workflow || null });
                 const callDetails = await service.makeAIOutboundCall({ to, from: channel.config.phoneNumber, url: channel.config.webSocketsUrl, webhookUrl: channel.config.voiceUpdatesWebhookUrl + conversation._id.toString(), agentId, conversationId: conversation._id.toString(), model, provider });
                 conversation.voiceCallIdentifierNumberSID = callDetails.sid;

@@ -85,8 +85,9 @@ export const jobResolvers = {
                     if (!exophone || !appId) throw new GraphQLError("exophone, appId are required in channel config");
                     const agentDetails = await AgentModel.findOne({ channels: channelId })
                     if (!agentDetails) throw new GraphQLError("agentDetails is required");
-                    const { personalInfo: { VoiceAgentSessionConfig: { model, voice } } } = agentDetails;
-                    if (!model || !voice) throw new GraphQLError("model, voice are required in personalInfo.VoiceAgentSessionConfig of agentDetails");
+                    const model = agentDetails?.modelConfig?.model;
+                    const voice = agentDetails?.responseConfig?.audio?.output?.voice || agentDetails?.responseConfig.realtimeOutputConfig?.voice;
+                    if (!model || !voice) throw new GraphQLError("model, voice are required in modelConfig.model or responseConfig.audio.output.voice or responseConfig.realtimeOutputConfig.voice of agentDetails");
                     for (const leadId of leadIds) {
                         let lead = await Lead.findById(leadId);
                         if (!lead) {
@@ -217,9 +218,9 @@ export const jobResolvers = {
                             statusTimeline: { scheduledAt: scheduledAt },
                             callDetails: {
                                 session: {
-                                    model: agentDetails?.personalInfo?.VoiceAgentSessionConfig?.model,
+                                    model: agentDetails?.modelConfig?.model,
                                     sampleRate: 24000,
-                                    voice: agentDetails?.personalInfo?.VoiceAgentSessionConfig?.voice,
+                                    voice: agentDetails?.responseConfig?.audio?.output?.voice || agentDetails?.responseConfig.realtimeOutputConfig?.voice,
                                 }
                             },
                         });
