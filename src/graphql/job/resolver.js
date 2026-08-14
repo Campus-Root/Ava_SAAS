@@ -48,6 +48,7 @@ export const jobResolvers = {
         validateCampaign: async (_, { channelId, leadIds, config = {} }, context, info) => {
             const channel = await Channel.findById(channelId, "_id name config provider apiAuthenticator").populate("provider").populate("apiAuthenticator");
             if (!channel) throw new GraphQLError("Channel not found");
+            console.log("channel.provider.name:", channel.provider.name);
             let leadErrors = [];
             switch (channel.provider.name) {
                 case "Whatsapp": {
