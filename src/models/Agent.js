@@ -6,7 +6,7 @@ const ProviderConfig = {
             models: ['gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna'],
         },
         REALTIME: {
-            models: ['gpt-realtime', 'gpt-realtime-2.1', 'gpt-realtime-2.1-mini', 'gpt-realtime-2.0', 'gpt-realtime-1.5'],
+            models: ['gpt-realtime', 'gpt-realtime-mini', 'gpt-realtime-2.1', 'gpt-realtime-2.1-mini', 'gpt-realtime-2.0', 'gpt-realtime-1.5'],
             voices: ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'marin', 'cedar'],
             modalities: ['audio', 'text'],
             wssUrl: 'wss://api.openai.com/v1/realtime',
