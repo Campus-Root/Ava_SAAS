@@ -32,7 +32,7 @@ builtInRoutes.get('/exotel-redirect', async (request, reply) => {
             console.error("❌", "Call session not found");
             return reply.status(404).send('Call session not found');
         }
-        const url = 'sockets.avakado.ai'
+        const url = 'phone.avakado.ai'
         const wssUrl = buildUrlWithParams(`wss://${url}/media-stream`, { callSessionId: callSession._id, model: callSession.callDetails.session.model, "sample-rate": callSession.callDetails.session.sampleRate });
         console.log("🚀 ~ builtInRoutes.get ~ wssUrl:", wssUrl)
         return reply.type('application/json').send({ url: wssUrl });
