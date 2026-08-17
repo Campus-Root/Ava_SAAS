@@ -85,7 +85,7 @@ export default class OauthWhatsApp extends BaseOAuthProvider {
                 return this._errorResponse("malformed_response", "Failed to obtain long-lived token.", 502);
             });
             // Step 3: debug tokens for scopes and validity
-            console.log("Step 3: Debug tokens for scopes and validity");    
+            console.log("Step 3: Debug tokens for scopes and validity");
             const { data: tokenInfo } = await axios.get(`${BASE_URL}/debug_token`, {
                 params: {
                     input_token: longLived.access_token,
@@ -137,7 +137,7 @@ export default class OauthWhatsApp extends BaseOAuthProvider {
             return this._handleError(error);
         }
     }
-    async setupChannel({ apiAuthenticator, config }) {
+    async setupChannel({ apiAuthenticator, config, runtime }) {
         const { phone_number_id } = config;
         console.log("Step 1: Setup channel");
         const accessToken = apiAuthenticator?.credentials?.accessToken;
@@ -146,30 +146,31 @@ export default class OauthWhatsApp extends BaseOAuthProvider {
         const auth = { headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` } };
         const steps = {};
         console.log("Step 3: Steps initialized");
-        steps.registration = await this._safeStep("registration", () =>
-            axios.post(`${BASE_URL}/${phone_number_id}/register`, {
-                messaging_product: "whatsapp",
-                pin: "000000",
-            }, auth),
-            { okErrorCodes: [133016] } // CRITICAL — register number to send and receive messages
-        );
-        console.log("Step 4: Registration step completed");
-        // OPTIONAL — calling fails gracefully on sub-2000-tier numbers
-        steps.calling = await this._safeStep("calling", () =>
-            axios.post(`${BASE_URL}/${phone_number_id}/settings`, {
-                calling: {
-                    status: "ENABLED",
-                    call_icon_visibility: "DEFAULT",
-                    callback_permission_status: "ENABLED",
-                    audio: { additional_codecs: ["PCMU", "PCMA"] },
-                },
-            }, auth),
-            { optional: true }  // OPTIONAL — calling fails gracefully on sub-2000-tier numbers
-        );
-        console.log("Step 5: Calling step completed");
-        // capabilities live INSIDE config so they persist via ...restConfigurations
-        config.capabilities = { messaging: steps.registration.ok, calling: steps.calling.ok };
-        if (!config.capabilities.messaging) config.errors = Object.values(steps).filter(s => !s.ok && !s.optional).map(s => `${s.name}(code=${s.code ?? "?"}, trace=${s.fbtrace_id ?? "?"})`).join("; ");
+        switch (runtime) {
+            case 'REALTIME':
+                steps.calling = await this._safeStep("calling", () =>
+                    axios.post(`${BASE_URL}/${phone_number_id}/settings`, {
+                        calling: {
+                            status: "ENABLED",
+                            call_icon_visibility: "DEFAULT",
+                            callback_permission_status: "ENABLED",
+                            audio: { additional_codecs: ["PCMU", "PCMA"] },
+                        },
+                    }, auth)
+                );
+                break;
+            case 'TURN_BASED':
+                steps.registration = await this._safeStep("registration", () =>
+                    axios.post(`${BASE_URL}/${phone_number_id}/register`, {
+                        messaging_product: "whatsapp",
+                        pin: "000000",
+                    }, auth),
+                    { okErrorCodes: [133016] } // CRITICAL — register number to send and receive messages
+                );
+                break;
+            default:
+                return this._errorResponse("invalid_runtime", "Invalid runtime.", 400);
+        }
         return this._successResponse(config, { config, externalId: phone_number_id });
     }
     /**

@@ -62,53 +62,53 @@ export default class OauthAvakado extends BaseOAuthProvider {
         }
     }
 
-    async setupChannel({ apiAuthenticator, channelId, config }) {
-        const webhookUrl = `https://sockets.avakado.ai/exotel-redirect?channelId=${channelId}`;
-        const { apiKey, apiToken, accountSid, subdomain } = apiAuthenticator.credentials;
-        let { exophone, exophoneSid = null, appId, capabilities } = config; // capabilities = { voice: true, sms: true, friendlyName: "Exotel Voice App" }
-        if (!exophone) return this._errorResponse("missing_exophone", "config.exophone (DID number) is required.", 400);
-        try {
-            if (!exophoneSid) {
-                const { data: { incoming_phone_numbers } } = await axios.get(`https://${apiKey}:${apiToken}@${subdomain}/v2_beta/Accounts/${accountSid}/IncomingPhoneNumbers.json`);
-                exophoneSid = incoming_phone_numbers.filter(number => number.phone_number === exophone)[0].sid;
-                if (!exophoneSid) return this._errorResponse("exophone_not_found", "Exophone not found.", 400);
-            }
-            const body = new URLSearchParams({
-                ...(capabilities.voice && { VoiceUrl: `http://my.exotel.com/${accountSid}/exoml/start_voice/${appId}` }),
-                ...(capabilities.sms && { SMSUrl: `http://my.exotel.com/${accountSid}/exoml/start_sms/${appId}` }),
-                ...(capabilities.friendlyName && { FriendlyName: capabilities.friendlyName }),
-            });
-            try {
-                const { data } = await axios.put(`https://${apiKey}:${apiToken}@${subdomain}/v2_beta/Accounts/${accountSid}/IncomingPhoneNumbers/${exophoneSid}.json`,
-                    body,
-                    {
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        }
-                    });
-            } catch (error) {
-                const responseData = error?.response?.data;
-                let message;
-                if (typeof responseData === "string") {
-                    message = responseData;
-                } else if (responseData && typeof responseData === "object") {
-                    // Exotel typically nests errors under RestException
-                    message =
-                        responseData.RestException?.Message ||
-                        responseData.message ||
-                        JSON.stringify(responseData);
-                } else {
-                    message = error.message || "Unknown error";
-                }
+    // async setupChannel({ apiAuthenticator, channelId, config }) {
+    //     const webhookUrl = `https://sockets.avakado.ai/exotel-redirect?channelId=${channelId}`;
+    //     const { apiKey, apiToken, accountSid, subdomain } = apiAuthenticator.credentials;
+    //     let { exophone, exophoneSid = null, appId, capabilities } = config; // capabilities = { voice: true, sms: true, friendlyName: "Exotel Voice App" }
+    //     if (!exophone) return this._errorResponse("missing_exophone", "config.exophone (DID number) is required.", 400);
+    //     try {
+    //         if (!exophoneSid) {
+    //             const { data: { incoming_phone_numbers } } = await axios.get(`https://${apiKey}:${apiToken}@${subdomain}/v2_beta/Accounts/${accountSid}/IncomingPhoneNumbers.json`);
+    //             exophoneSid = incoming_phone_numbers.filter(number => number.phone_number === exophone)[0].sid;
+    //             if (!exophoneSid) return this._errorResponse("exophone_not_found", "Exophone not found.", 400);
+    //         }
+    //         const body = new URLSearchParams({
+    //             ...(capabilities.voice && { VoiceUrl: `http://my.exotel.com/${accountSid}/exoml/start_voice/${appId}` }),
+    //             ...(capabilities.sms && { SMSUrl: `http://my.exotel.com/${accountSid}/exoml/start_sms/${appId}` }),
+    //             ...(capabilities.friendlyName && { FriendlyName: capabilities.friendlyName }),
+    //         });
+    //         try {
+    //             const { data } = await axios.put(`https://${apiKey}:${apiToken}@${subdomain}/v2_beta/Accounts/${accountSid}/IncomingPhoneNumbers/${exophoneSid}.json`,
+    //                 body,
+    //                 {
+    //                     headers: {
+    //                         'Content-Type': 'application/x-www-form-urlencoded',
+    //                     }
+    //                 });
+    //         } catch (error) {
+    //             const responseData = error?.response?.data;
+    //             let message;
+    //             if (typeof responseData === "string") {
+    //                 message = responseData;
+    //             } else if (responseData && typeof responseData === "object") {
+    //                 // Exotel typically nests errors under RestException
+    //                 message =
+    //                     responseData.RestException?.Message ||
+    //                     responseData.message ||
+    //                     JSON.stringify(responseData);
+    //             } else {
+    //                 message = error.message || "Unknown error";
+    //             }
 
-                throw new Error(`Failed to assign phone number to flow: ${message}`);
-            }
-            return { success: true, config: { ...config, webhookUrl: webhookUrl }, error: null, externalId: exophone }
-        } catch (error) {
-            console.log("error", error);
-            return this._handleError(error);
-        }
-    }
+    //             throw new Error(`Failed to assign phone number to flow: ${message}`);
+    //         }
+    //         return { success: true, config: { ...config, webhookUrl: webhookUrl }, error: null, externalId: exophone }
+    //     } catch (error) {
+    //         console.log("error", error);
+    //         return this._handleError(error);
+    //     }
+    // }
 
     async getUserInfo({ apiKey, apiToken, accountSid, subdomain = SUBDOMAIN_MAP.singapore }) {
         if (!apiKey || !apiToken || !accountSid) {

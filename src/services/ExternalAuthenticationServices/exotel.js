@@ -137,7 +137,7 @@ export default class OauthExotel extends BaseOAuthProvider {
 
     // Sets up inbound call/SMS webhook for the given Exotel virtual number (exophone).
     // config must include: { exophone, appId, capabilities }  — the DID/Exophone to attach the webhook to and the appId to use and the options to use
-    async setupChannel({ apiAuthenticator, channelId, config }) {
+    async setupChannel({ apiAuthenticator, channelId, config, runtime }) {
         const webhookUrl = `https://app.avakado.ai/exotel-redirect?channelId=${channelId}`;
         const { apiKey, apiToken, accountSid, subdomain } = apiAuthenticator.credentials;
         let { exophone, exophoneSid = null, appId, capabilities } = config; // capabilities = { voice: true, sms: true, friendlyName: "Exotel Voice App" }
@@ -148,11 +148,17 @@ export default class OauthExotel extends BaseOAuthProvider {
                 exophoneSid = incoming_phone_numbers.filter(number => number.phone_number === exophone)[0].sid;
                 if (!exophoneSid) return this._errorResponse("exophone_not_found", "Exophone not found.", 400);
             }
-            const body = new URLSearchParams({
-                ...(capabilities.voice && { VoiceUrl: `http://my.exotel.com/${accountSid}/exoml/start_voice/${appId}` }),
-                ...(capabilities.sms && { SMSUrl: `http://my.exotel.com/${accountSid}/exoml/start_sms/${appId}` }),
-                ...(capabilities.friendlyName && { FriendlyName: capabilities.friendlyName }),
-            });
+            let body
+            switch (runtime) {
+                case 'REALTIME':
+                    body = new URLSearchParams({ VoiceUrl: `http://my.exotel.com/${accountSid}/exoml/start_voice/${appId}`, FriendlyName: "Avakado Voice" });
+                    break;
+                case 'TURN_BASED':
+                    body = new URLSearchParams({ SMSUrl: `http://my.exotel.com/${accountSid}/exoml/start_sms/${appId}`, FriendlyName: "Avakado SMS" });
+                    break;
+                default:
+                    return this._errorResponse("invalid_runtime", "Invalid runtime.", 400);
+            }
             try {
                 const { data } = await axios.put(`https://${apiKey}:${apiToken}@${subdomain}/v2_beta/Accounts/${accountSid}/IncomingPhoneNumbers/${exophoneSid}.json`,
                     body,
