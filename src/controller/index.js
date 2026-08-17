@@ -59,9 +59,9 @@ builtInRoutes.get('/initiate-conversation', async (req, res) => {
 builtInRoutes.get('/get-agent', async (req, res) => {
     try {
         const { channelId } = req.query
-        const channel = await Channel.findById(channelId, { business: 1, agent: 1, _id: 1 })
+        const channel = await Channel.findById(channelId, { name: 1, type: 1, runtime: 1, UIElements: 1, config: 1, business: 1, settings: 1, agent: 1, _id: 1 })
         if (!channel) return res.status(404).json({ message: 'Channel not found' });
-        const agent = await AgentModel.findOne({ channels: channel._id }).populate("personalInfo business");
+        const agent = await AgentModel.findOne({ channels: channel._id }).populate("personalInfo.name personalInfo.avatar business");
         if (!agent) return res.status(404).json({ message: 'Agent not found' });
         res.status(200).json({ success: true, data: { agent, channel } });
     } catch (error) {
