@@ -5,6 +5,7 @@ import { AgentModel } from '../models/Agent.js';
 import { buildUrlWithParams, getCallSessionForIncomingCall, getCallSessionForOutboundDial } from '../utils/CallSessions.js';
 import { Channel } from '../models/Channels.js';
 import { Lead } from '../models/Leads.js';
+import { Conversation } from '../models/Conversations.js';
 export const builtInRoutes = Router();
 builtInRoutes.get('/', (_, res) => res.status(200).send('Server running'));
 builtInRoutes.get('/exotel-redirect', async (request, reply) => {
@@ -85,7 +86,7 @@ builtInRoutes.post('/contact-us', async (req, res) => {
     <p><strong>Phone:</strong> ${phone || 'N/A'}</p>
     <p><strong>Purpose:</strong><br>${purpose}</p>
 `;
-        Promise.all([
+    await Promise.all([
             // await Lead.create({ name, purpose, contactDetails: { email: email || null, phone: phone || null } }),
             await sendMail({ to: "ankit@onewindow.co anurag@onewindow.co vishnu.teja101.vt@gmail.com", subject, text, html })
         ]);
