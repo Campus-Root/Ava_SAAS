@@ -45,13 +45,15 @@ builtInRoutes.get('/exotel-redirect', async (request, reply) => {
 })
 builtInRoutes.get('/initiate-conversation', async (req, res) => {
     const { channelId, externalConversationId, leadId } = req.query;
+    let conversation = await Conversation.findOne({ channel: channelId, lead: leadId });
+    if (conversation) return res.status(200).json({ success: true, data: conversation });
     const channel = await Channel.findById(channelId, { business: 1, agent: 1, _id: 1 })
     if (!channel) return res.status(404).json({ message: 'Channel not found' });
     const agent = await AgentModel.findOne({ channels: { $in: [channel._id] } }, { _id: 1 })
     if (!agent) return res.status(404).json({ message: 'Agent not found' });
     let lead = await Lead.findById(leadId);
     if (!lead) lead = await Lead.create({ business: channel.business, name: "Anonymous", source: "webchat", tags: ["webchat"] });
-    const conversation = await Conversation.create({ business: channel.business, channel: channel._id, agent: agent._id, externalConversationId, lead: lead._id });
+    conversation = await Conversation.create({ business: channel.business, channel: channel._id, agent: agent._id, externalConversationId, lead: lead._id });
     res.status(200).json({ success: true, data: conversation });
 });
 builtInRoutes.get('/get-agent', async (req, res) => {
@@ -86,7 +88,7 @@ builtInRoutes.post('/contact-us', async (req, res) => {
     <p><strong>Phone:</strong> ${phone || 'N/A'}</p>
     <p><strong>Purpose:</strong><br>${purpose}</p>
 `;
-    await Promise.all([
+        await Promise.all([
             // await Lead.create({ name, purpose, contactDetails: { email: email || null, phone: phone || null } }),
             await sendMail({ to: "ankit@onewindow.co anurag@onewindow.co vishnu.teja101.vt@gmail.com", subject, text, html })
         ]);
