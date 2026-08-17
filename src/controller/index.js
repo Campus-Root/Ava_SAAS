@@ -61,7 +61,7 @@ builtInRoutes.get('/get-agent', async (req, res) => {
         const { channelId } = req.query
         const channel = await Channel.findById(channelId, { name: 1, config: 1, _id: 1 })
         if (!channel) return res.status(404).json({ message: 'Channel not found' });
-        const agent = await AgentModel.findOne({ channels: channel._id }).populate("personalInfo.name personalInfo.avatar");
+        const agent = await AgentModel.findOne({ channels: channel._id }, "personalInfo.name personalInfo.avatar _id");
         if (!agent) return res.status(404).json({ message: 'Agent not found' });
         res.status(200).json({ success: true, data: { agent, channel } });
     } catch (error) {
