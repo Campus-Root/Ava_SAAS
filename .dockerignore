@@ -4,4 +4,4 @@ npm-debug.log
 .gitignore
 .env
 *.pem
-.DS_Store
+*DS_Store
