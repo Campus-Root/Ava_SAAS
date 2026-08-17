@@ -46,12 +46,12 @@ export const getCallSessionForIncomingCall = async ({ CallSid, CallTo, CallFrom,
             lastInteractedAt: new Date(),
         });
     }
-    let conversation = await Conversation.findOneAndUpdate({ business: businessId, channel: channelId, externalConversationId: normalizePhoneNumber(CallFrom)?.number, lead: lead._id }, { $set: { status: "open" } }, { new: true });
+    let conversation = await Conversation.findOneAndUpdate({ business: businessId, channel: channelId, lead: lead._id }, { $set: { status: "open" } }, { new: true });
     if (!conversation) {
         console.log("Conversation not found, creating new one with the details", {
-            business: businessId, channel: channelId, externalConversationId: normalizePhoneNumber(CallFrom)?.number, lead: lead._id
+            business: businessId, channel: channelId, lead: lead._id
         });
-        conversation = await Conversation.create({ business: businessId, channel: channelId, agent: agentId, externalConversationId: CallFrom, lead: lead._id, status: "open" });
+        conversation = await Conversation.create({ business: businessId, channel: channelId, agent: agentId, externalConversationId: normalizePhoneNumber(CallFrom), lead: lead._id, status: "open" });
     }
     const agent = await AgentModel.findById(agentId);
     const callSession = await CallSession.create({
