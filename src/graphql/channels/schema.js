@@ -32,7 +32,7 @@ type Channel {
 enum ChannelTypeEnum {
   whatsapp
   telegram
-  web
+  website
   phone
   instagram
   sms
