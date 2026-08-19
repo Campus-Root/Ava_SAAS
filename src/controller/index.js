@@ -46,28 +46,28 @@ builtInRoutes.get('/exotel-redirect', async (request, reply) => {
 builtInRoutes.get('/initiate-conversation', async (req, res) => {
     const { channelId, externalConversationId, leadId } = req.query;
     let conversation = await Conversation.findOne({ channel: channelId, lead: leadId }).populate("lead", "name _id");
-    if (conversation) return res.status(200).json({ success: true, data: conversation });
+    if (conversation) return res.status(200).json({ success: true, message: "Conversation already exists", data: conversation });
     const channel = await Channel.findById(channelId, { business: 1, agent: 1, _id: 1 })
-    if (!channel) return res.status(404).json({ message: 'Channel not found' });
+    if (!channel) return res.status(404).json({ success: false, message: 'Channel not found' });
     const agent = await AgentModel.findOne({ channels: { $in: [channel._id] } }, { _id: 1 })
-    if (!agent) return res.status(404).json({ message: 'Agent not found' });
+    if (!agent) return res.status(404).json({ success: false, message: 'Agent not found' });
     let lead = await Lead.findById(leadId);
     if (!lead) lead = await Lead.create({ business: channel.business, name: "Anonymous", source: "webchat", tags: ["webchat"] });
     conversation = await Conversation.create({ business: channel.business, channel: channel._id, agent: agent._id, externalConversationId, lead: lead._id })
     await conversation.populate("lead", "name _id");
-    res.status(200).json({ success: true, data: conversation });
+    res.status(200).json({ success: true,message: "Conversation initiated successfully", data: conversation });
 });
 builtInRoutes.get('/get-agent', async (req, res) => {
     try {
         const { channelId } = req.query
         const channel = await Channel.findById(channelId, { name: 1, config: 1, _id: 1 })
-        if (!channel) return res.status(404).json({ message: 'Channel not found' });
+        if (!channel) return res.status(404).json({ success: false, message: 'Channel not found' });
         const agent = await AgentModel.findOne({ channels: channel._id }, "personalInfo.name personalInfo.avatar _id");
-        if (!agent) return res.status(404).json({ message: 'Agent not found' });
-        res.status(200).json({ success: true, data: { agent, channel } });
+        if (!agent) return res.status(404).json({ success: false, message: 'Agent not found' });
+        res.status(200).json({ success: true, message: "Agent found", data: { agent, channel } });
     } catch (error) {
         console.error("❌", error);
-        res.status(500).json({ message: "An error occurred", error: error.message });
+        res.status(500).json({ success: false, message: "An error occurred", error: error.message });
     }
 });
 builtInRoutes.post('/contact-us', async (req, res) => {

@@ -197,5 +197,11 @@ export const messageTypeDefs = `#graphql
       limit: Int
       page: Int
     ): CallSessionPagination @requireScope(scope: "call:read") @requireBusinessAccess
+
+    """
+    Returns a playable recording URL for a call session.
+    Open the returned URL in a new browser tab (e.g. window.open(url, '_blank')).
+    """
+    fetchRecording(callSessionId: ID!): String @requireScope(scope: "call:record") @requireBusinessAccess
   }
 `;
