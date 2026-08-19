@@ -53,7 +53,8 @@ builtInRoutes.get('/initiate-conversation', async (req, res) => {
     if (!agent) return res.status(404).json({ message: 'Agent not found' });
     let lead = await Lead.findById(leadId);
     if (!lead) lead = await Lead.create({ business: channel.business, name: "Anonymous", source: "webchat", tags: ["webchat"] });
-    conversation = await Conversation.create({ business: channel.business, channel: channel._id, agent: agent._id, externalConversationId, lead: lead._id }).populate("lead", "name _id");
+    conversation = await Conversation.create({ business: channel.business, channel: channel._id, agent: agent._id, externalConversationId, lead: lead._id })
+    await conversation.populate("lead", "name _id");
     res.status(200).json({ success: true, data: conversation });
 });
 builtInRoutes.get('/get-agent', async (req, res) => {
