@@ -167,6 +167,11 @@ export const messageTypeDefs = `#graphql
     metaData: PaginationMetaData
   }
 
+  type recordingResponse {
+    url: String
+    headers: JSON
+  }
+
   # ─── Queries ─────────────────────────────────────────────────────────────────
 
   type Query {
@@ -202,6 +207,6 @@ export const messageTypeDefs = `#graphql
     Returns a playable recording URL for a call session.
     Open the returned URL in a new browser tab (e.g. window.open(url, '_blank')).
     """
-    fetchRecording(callSessionId: ID!): String @requireScope(scope: "call:record") @requireBusinessAccess
+    fetchRecording(callSessionId: ID!): recordingResponse @requireScope(scope: "call:read") @requireBusinessAccess
   }
 `;
