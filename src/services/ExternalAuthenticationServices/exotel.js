@@ -226,6 +226,23 @@ export default class OauthExotel extends BaseOAuthProvider {
         // Static credentials — no expiry or refresh flow
         return Boolean(apiKey && apiToken && accountSid);
     }
+    async resolvePlayableRecordingUrl({ recordingData, credentials }) {
+        const { apiKey, apiToken } = credentials;
+        // if (!apiKey || !apiToken) return this._errorResponse("missing_credentials", "Missing apiKey or apiToken.", 400);
+        // const response = await axios.get(recordingData.url, {
+        //     auth: { username: apiKey, password: apiToken },
+        //     maxRedirects: 0,
+        //     validateStatus: (status) => status >= 200 && status < 400,
+        //     responseType: "stream",
+        // });
+        // response.data?.destroy?.();
+        // const location = response.headers?.location;
+        // if (location) return new URL(location, recordingData.url).toString();
+        const playableUrl = new URL(recordingData.url);
+        playableUrl.username = apiKey;
+        playableUrl.password = apiToken;
+        return { url: playableUrl.toString(), headers: {} };
+    }
 
     _handleError(error) {
         // FIX: Handle case where response is null/undefined (network error)

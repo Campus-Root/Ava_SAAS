@@ -7,29 +7,8 @@ import { ApiAuthenticators } from "../../models/apiAuthenticator.js";
 import graphqlFields from "graphql-fields";
 import { getSelectFields } from "../../utils/graphqlTools.js";
 import { GraphQLError } from "graphql";
-import axios from "axios";
-
-async function resolvePlayableRecordingUrl(recordingUrl, apiKey, apiToken) {
-  try {
-    const response = await axios.get(recordingUrl, {
-      auth: { username: apiKey, password: apiToken },
-      maxRedirects: 0,
-      validateStatus: (status) => status >= 200 && status < 400,
-      responseType: "stream",
-    });
-    response.data?.destroy?.();
-    const location = response.headers?.location;
-    if (location) return new URL(location, recordingUrl).toString();
-  } catch (error) {
-    const location = error.response?.headers?.location;
-    if (location) return new URL(location, recordingUrl).toString();
-  }
-
-  const playableUrl = new URL(recordingUrl);
-  playableUrl.username = apiKey;
-  playableUrl.password = apiToken;
-  return playableUrl.toString();
-}
+import { PROVIDER_MAP } from "../../utils/setup.js";
+import { Providers } from "../../models/ExternalServiceProviders.js";
 
 // ─── Resolvers ────────────────────────────────────────────────────────────────
 
@@ -146,18 +125,17 @@ export const messageResolvers = {
         business: context.user.business,
       }).populate("channel");
       if (!callSession) throw new GraphQLError("Call session not found");
-
-      const recordingUrl = callSession.recording?.url;
-      if (!recordingUrl) throw new GraphQLError("Recording not available");
-
+      const recordingData = callSession.recording;
+      if (recordingData.status !== "stored") throw new GraphQLError("Recording not available");
       await ApiAuthenticators.populate(callSession, { path: "channel.apiAuthenticator" });
+      await Providers.populate(callSession, { path: "channel.provider" });
       const authenticator = callSession.channel?.apiAuthenticator;
       if (!authenticator) throw new GraphQLError("Channel credentials not found");
-
-      const { apiKey, apiToken } = authenticator._enrichedCredentials();
-      if (!apiKey || !apiToken) throw new GraphQLError("Recording credentials not found");
-
-      return resolvePlayableRecordingUrl(recordingUrl, apiKey, apiToken);
+      const credentials = authenticator._enrichedCredentials();
+      const providerService = PROVIDER_MAP[callSession.channel.provider.name];
+      if (!providerService) throw new GraphQLError("Provider not found");
+      const { url, headers } = await providerService.resolvePlayableRecordingUrl({ recordingData, credentials });
+      return { url, headers };
     },
   },
 };

@@ -332,6 +332,14 @@ export default class OauthWhatsApp extends BaseOAuthProvider {
             return this._handleError(error);
         }
     }
+    async resolvePlayableRecordingUrl({ recordingData, credentials }) {
+        const { accessToken } = credentials;
+        if (!accessToken) return this._errorResponse("missing_credentials", "Missing access token.", 400);
+        const { data } = await axios.get(`${BASE_URL}/media/${recordingData.key}`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        return { url: data.url, headers: { Authorization: `Bearer ${accessToken}` } };
+    }
 
     async validateToken({ accessToken }) {
         // FIX: ALWAYS return boolean
