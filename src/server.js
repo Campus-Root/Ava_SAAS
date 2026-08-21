@@ -74,7 +74,13 @@ export const createApp = async () => {
         app.use(express.urlencoded({ limit: '50mb', extended: true }));
         app.use(bodyParser.urlencoded({ extended: true }));
         // Routes
-        app.use('/', openCors, builtInRoutes);
+        const allowAllCors = cors({
+            origin: '*',
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+            allowedHeaders: ['Content-Type', 'Authorization'],
+            credentials: true
+        });
+        app.use('/', allowAllCors, builtInRoutes);
         // Error handling
         try {
             app.use(errorHandlerMiddleware);
