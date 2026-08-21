@@ -80,7 +80,10 @@ export const createApp = async () => {
             allowedHeaders: ['Content-Type', 'Authorization'],
             credentials: true
         });
-        app.use('/', allowAllCors, builtInRoutes);
+        app.use('/', (req, res, next) => {
+            console.log("origin", req.headers.origin);
+            next();
+        }, allowAllCors, builtInRoutes);
         // Error handling
         try {
             app.use(errorHandlerMiddleware);
