@@ -44,7 +44,7 @@ export const createApp = async () => {
         const server = http.createServer(app);
         // Middleware
         app.set('trust proxy', 1);
-        app.use(cors(corsOptions))
+        // app.use(cors(corsOptions))
         app.use(helmet({
             contentSecurityPolicy: false, // Temporarily disable CSP
             frameguard: { action: 'sameorigin' },
