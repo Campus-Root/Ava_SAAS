@@ -48,6 +48,7 @@ export const agentTypeDefs = `#graphql
     personalInfo: PersonalInfo
     runtime: AgentRuntimeEnum
     modelConfig: ModelConfig
+    modality: String
     responseConfig: JSON
     """ Associated knowledge collections """
     collections: [Collection]
@@ -100,6 +101,7 @@ export const agentTypeDefs = `#graphql
     personalInfo: AgentPersonalInfoInput
     runtime: AgentRuntimeEnum
     modelConfig: JSON
+    modality: String
     responseConfig: JSON
     collections: [ID]
     workflow: ID
@@ -115,6 +117,13 @@ enum AgentProviderEnum {
 type AgentPagination {
     data: [Agent]
     metaData: PaginationMetaData
+}
+
+type AgentFacets {
+  runtime: [FacetOption]
+  provider: [FacetOption]
+  isPublic: [FacetOption]
+  isFeatured: [FacetOption]
 }
 
 type Demonstration {
@@ -144,8 +153,22 @@ kind: String
         @param limit - Maximum number of agents to return
         @param isPublic - Filter by public/private status
         @param isFeatured - Filter by featured status
+        @param runtime - Filter by agent runtime
+        @param provider - Filter by model provider
         @param id - Optional ID to fetch a specific agent """
-    agents(limit: Int page: Int isPublic: Boolean isFeatured: Boolean id: ID): AgentPagination @requireScope(scope: "agent:read") @requireBusinessAccess
+    agents(
+      limit: Int
+      page: Int
+      isPublic: Boolean
+      isFeatured: Boolean
+      runtime: [AgentRuntimeEnum]
+      provider: [String]
+      id: ID
+    ): AgentPagination @requireScope(scope: "agent:read") @requireBusinessAccess
+
+    """ Distinct filter values + counts for the agents list UI """
+    fetchAgentFacets: AgentFacets @requireScope(scope: "agent:read") @requireBusinessAccess
+
     """ Get an ephemeral token for an agent
         @param id - ID of agent to get the token for """
     ephemeralToken(id: ID,model: String, voice: String, provider: AgentProviderEnum): JSON

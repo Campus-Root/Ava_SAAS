@@ -92,4 +92,10 @@ export const sharedTypeDefs = `#graphql
     totalPages: Int
     totalDocuments: Int
   }
+
+  """A single filter option with document count"""
+  type FacetOption {
+    value: String
+    count: Int
+  }
 `; 

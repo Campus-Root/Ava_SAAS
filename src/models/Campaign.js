@@ -21,7 +21,7 @@ const CampaignSchema = new Schema({
     business: { type: Schema.Types.ObjectId, ref: 'Businesses', required: true },
     channel: { type: Schema.Types.ObjectId, ref: "Channel", required: true },
     leads: [{ type: Schema.Types.ObjectId, ref: "Lead" }],
-    config: { type: Schema.Types.Mixed, default: null },
+    config: { retries: Number, Accomplishment: String },
     status: { type: String, enum: ["pending", "active", "completed"], default: "pending" },
     timeLines: {
         scheduledAt: Date,// scheduled time

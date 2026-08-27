@@ -1,5 +1,7 @@
 import axios from "axios";
 import BaseOAuthProvider from "./base.js";
+import AuthService from "../authService.js";
+import { User } from "../../models/User.js";
 export default class OauthAvakado extends BaseOAuthProvider {
     name = "avakado";
 
@@ -11,8 +13,17 @@ export default class OauthAvakado extends BaseOAuthProvider {
             AuthUrl: `https://www.avakado.ai/integrate/avakado?state=${state}`,
             ExpectedKeysFromQuery: {
                 type: "object",
-                required: ["expiry", "scope", "accessToken"],
+                required: ["expiry", "scope", "userId"],
                 properties: {
+                    userId: {
+                        type: "string",
+                        description: "User ID",
+                        default: "",
+                        xUi: {
+                            label: "User ID",
+                            inputType: "text",
+                        }
+                    },
                     expiry: {
                         type: "string",
                         description: "Expiry",
@@ -20,15 +31,6 @@ export default class OauthAvakado extends BaseOAuthProvider {
                         xUi: {
                             label: "Expiry",
                             inputType: "text",
-                        }
-                    },
-                    accessToken: {
-                        type: "string",
-                        description: "Access Token",
-                        default: "",
-                        xUi: {
-                            label: "Access Token",
-                            inputType: "password",
                         }
                     },
                     scope: {
@@ -54,8 +56,11 @@ export default class OauthAvakado extends BaseOAuthProvider {
         };
     }
 
-    async getTokens({ expiry, scope, accessToken }) {
+    async getTokens({ expiry, scope, userId }) {
         try {
+            const user = await User.findById(userId);
+            if (!user) return this._errorResponse("user_not_found", "User not found.", 400);
+            const { accessToken } = AuthService.generateTokens(user._id, expiry);
             return this._successResponse({ credentials: { expiry, scope, accessToken } });
         } catch (error) {
             return this._handleError(error);

@@ -24,8 +24,8 @@ const ProviderConfig = {
         },
     },
     anthropic: {
-        TURN_BASED: ['claude-opus-4-8', 'claude-sonnet-5', 'claude-haiku-4-5-20251001'],
-        REALTIME: null,
+        TURN_BASED: { models: ['claude-opus-4-8', 'claude-sonnet-5', 'claude-haiku-4-5-20251001'] },
+        REALTIME: null
     }
 };
 
@@ -79,17 +79,25 @@ const ModelConfigSchema = new Schema({
 },
     { _id: false }
 );
-
-
 const ResponseConfigSchema = new Schema({
     provider: { type: String, enum: [...Object.keys(ProviderConfig), 'elevenlabs', 'custom'], required: true },
 }, { _id: false, discriminatorKey: 'provider' });
-const TurnBasedConfigSchema = new Schema({}, { _id: false });    // currently none but might be used for future features
-const BackgroundConfigSchema = new Schema({}, { _id: false });    // currently none but might be used for future features
-const RealtimeConfigSchema = new Schema({ responseConfig: ResponseConfigSchema }, { _id: false });
+const RealtimeConfigSchema = new Schema({
+    modality: {
+        type: String, required: true,
+        validate: {
+            validator(value) {
+                const provider = this.$parent()?.modelConfig?.provider;
+                const runtime = this.$parent()?.runtime;
+                return ProviderConfig[provider]?.[runtime]?.modalities?.includes(value);
+            },
+            message: props => `Invalid modality "${props.value}" for this provider`,
+        }
+    },
+    responseConfig: ResponseConfigSchema
+}, { _id: false });
 const responseConfigPath = RealtimeConfigSchema.path('responseConfig');
-const openaiResponseConfigSchema = new Schema({
-    modality: [{ type: String, enum: ProviderConfig.openai?.REALTIME?.modalities, default: ProviderConfig.openai?.REALTIME?.modalities[0] }],
+responseConfigPath.discriminator('openai', new Schema({
     wssUrl: { type: String, default: ProviderConfig.openai?.REALTIME?.wssUrl },
     audio: {
         input: {
@@ -97,11 +105,58 @@ const openaiResponseConfigSchema = new Schema({
             transcription: { model: { type: String, default: "whisper-1" }, prompt: String, language: String },
             turn_detection: {
                 type: { type: String, enum: ['server_vad', 'semantic_vad'], default: 'server_vad' },
+                // shared
                 create_response: { type: Boolean, default: true },
                 interrupt_response: { type: Boolean, default: true },
-                prefix_padding_ms: { type: Number, default: 300 },
-                silence_duration_ms: { type: Number, default: 1000 },
-                threshold: { type: Number, default: 0.8 }
+                // server_vad only
+                prefix_padding_ms: {
+                    type: Number,
+                    default: function () { return this.type === 'server_vad' ? 300 : undefined; },
+                    validate: {
+                        validator(value) {
+                            if (value == null) return true;
+                            return this.type === 'server_vad';
+                        },
+                        message: 'prefix_padding_ms is only valid for server_vad',
+                    },
+                },
+                silence_duration_ms: {
+                    type: Number,
+                    default: function () { return this.type === 'server_vad' ? 500 : undefined; },
+                    validate: {
+                        validator(value) {
+                            if (value == null) return true;
+                            return this.type === 'server_vad';
+                        },
+                        message: 'silence_duration_ms is only valid for server_vad',
+                    },
+                },
+                threshold: {
+                    type: Number,
+                    min: 0,
+                    max: 1,
+                    default: function () { return this.type === 'server_vad' ? 0.5 : undefined; },
+                    validate: {
+                        validator(value) {
+                            if (value == null) return true;
+                            return this.type === 'server_vad';
+                        },
+                        message: 'threshold is only valid for server_vad',
+                    },
+                },
+                // semantic_vad only
+                eagerness: {
+                    type: String,
+                    enum: ['low', 'medium', 'high', 'auto'],
+                    default: function () { return this.type === 'semantic_vad' ? 'auto' : undefined; },
+                    validate: {
+                        validator(value) {
+                            if (value == null) return true;
+                            return this.type === 'semantic_vad';
+                        },
+                        message: 'eagerness is only valid for semantic_vad',
+                    },
+                },
             }
         },
         output: {
@@ -109,10 +164,8 @@ const openaiResponseConfigSchema = new Schema({
             voice: { type: String, validate: { validator: function (value) { return ProviderConfig.openai?.voices.includes(value); }, message: props => `Invalid voice for openai` } },
         }
     }
-}, { _id: false });
-responseConfigPath.discriminator('openai', openaiResponseConfigSchema);
-const geminiResponseConfigSchema = new Schema({
-    modality: [{ type: String, enum: ProviderConfig.gemini?.REALTIME?.modalities, default: ProviderConfig.gemini?.REALTIME?.modalities[0] }],
+}, { _id: false }));
+responseConfigPath.discriminator('gemini', new Schema({
     wssUrl: { type: String, default: ProviderConfig.gemini?.REALTIME?.wssUrl },
     proactivity: { proactiveAudio: { type: Boolean, default: true } },
     enableAffectiveDialog: { type: Boolean, default: true },
@@ -131,8 +184,7 @@ const geminiResponseConfigSchema = new Schema({
     },
     inputAudioTranscription: Schema.Types.Mixed,
     outputAudioTranscription: Schema.Types.Mixed,
-}, { _id: false });
-responseConfigPath.discriminator('gemini', geminiResponseConfigSchema);
+}, { _id: false }));
 const AgentSchema = new Schema({
     personalInfo: {
         name: String,
@@ -153,7 +205,6 @@ const AgentSchema = new Schema({
     actions: [{ type: Schema.Types.ObjectId, ref: 'Action' }],
     tool_choice: { type: String, enum: ['auto', 'none', 'required'], default: "auto" },
     business: { type: Schema.Types.ObjectId, ref: 'Businesses' },
-    facets: [String],
     createdBy: { type: Schema.Types.ObjectId, ref: 'Users' },
     isPublic: { type: Boolean, default: false },
     isFeatured: { type: Boolean, default: false },
@@ -161,7 +212,7 @@ const AgentSchema = new Schema({
     discriminatorKey: 'runtime',
     timestamps: true
 });
-AgentSchema.discriminator('TURN_BASED', TurnBasedConfigSchema)
+AgentSchema.discriminator('TURN_BASED', new Schema({}, { _id: false }))
 AgentSchema.discriminator('REALTIME', RealtimeConfigSchema)
-AgentSchema.discriminator('BACKGROUND', BackgroundConfigSchema)
+AgentSchema.discriminator('BACKGROUND', new Schema({}, { _id: false }))
 export const AgentModel = model('Agent', AgentSchema, "Agent");

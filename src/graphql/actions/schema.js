@@ -81,5 +81,10 @@ export const actionTypeDefs = `#graphql
     """Delete an action
     @param id - ID of action to delete"""
     deleteAction(id: ID!): Boolean @requireScope(scope: "action:delete") @requireBusinessAccess
+
+    """Test an action
+    @param actionId - ID of action to test
+    @param parameters - Parameters to pass to the action"""
+    testAction(actionId: ID!, parameters: JSON!): JSON @requireScope(scope: "action:read") @requireBusinessAccess
   }
 `; 

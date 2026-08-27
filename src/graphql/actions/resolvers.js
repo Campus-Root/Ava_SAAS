@@ -27,6 +27,13 @@ export const actionResolvers = {
             await Business.populate(newAction, { path: 'business', select: nested.business });
             return newAction;
         },
+        testAction: async (_, { actionId, parameters }, context) => {
+            const action = await Action.findById(actionId);
+            const AsyncFunction = Object.getPrototypeOf(async function () { }).constructor;
+            const mainFunction = new AsyncFunction("input", action.functionString);
+            const result = await mainFunction(parameters);
+            return result;
+        },
         updateAction: async (_, { id, action }, context, info) => {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { projection, nested } = flattenFields(requestedFields);

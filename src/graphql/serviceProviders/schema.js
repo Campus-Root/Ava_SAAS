@@ -96,6 +96,7 @@ type Mutation {
     deleteApi(id: ID!): Boolean @requireScope(scope: "super:marketplace")
     createAuthStrategy(apiId: ID!, state: String):AuthStrategy @requireScope(scope: "integration:create") @requireBusinessAccess
     createApiAuthenticator(providerId: ID!, authType: apiAuthEnum!, existingAuthenticatorId: ID, keys: JSON): ApiAuthenticator @requireScope(scope: "integration:create") @requireBusinessAccess
+    testApi(apiId: ID!, authId: ID!, input: JSON, config: JSON): JSON @requireScope(scope: "integration:create") @requireBusinessAccess
 }
 
 `;

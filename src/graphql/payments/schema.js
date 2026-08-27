@@ -71,11 +71,22 @@ input PlanInput {
     allowedTopUps: [ID]
     autoRenew: Boolean
 } 
+type UsageLog {
+    _id: ID!
+    business: Business
+    references: JSON
+    model: JSON
+    event: JSON
+    usage: JSON
+    cost: JSON
+}
 type Query {
     fetchPublicPlans(code: String, name: String, type: PlanTypeEnum, status: PlanStatusEnum, id: ID): [Plan]
     fetchPlans(code: String, name: String, type: PlanTypeEnum, status: PlanStatusEnum, id: ID): [Plan] @requireScope(scope: "super:all")
     fetchSubscription(id: ID!): Subscription @requireScope(scope: "subscription:read")
+    fetchUsageLogs(type: String, startDate: DateTime, endDate: DateTime): [UsageLog] @requireScope(scope: "subscription:read")
 }
+
 type Mutation {
     createAVAPlan(input: PlanInput!): Plan @requireScope(scope: "super:all")
     updateAVAPlan(id: ID!, input: PlanInput!): Plan @requireScope(scope: "super:all")

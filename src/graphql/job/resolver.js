@@ -32,6 +32,28 @@ export const jobResolvers = {
             if (populateFields?.channel) await Channel.populate(campaigns, { path: 'channel', select: populateFields.channel });
             return { data: campaigns, metaData: { page, limit, totalPages: Math.ceil(totalDocuments / limit), totalDocuments } };
         },
+        fetchCampaignFacets: async (_, __, context) => {
+            const baseFilter = { business: context.user.business };
+            const [result] = await Campaign.aggregate([
+                { $match: baseFilter },
+                {
+                    $facet: {
+                        status: [
+                            { $group: { _id: '$status', count: { $sum: 1 } } },
+                            { $match: { _id: { $ne: null } } },
+                            { $sort: { count: -1 } },
+                        ],
+                        channel: [
+                            { $group: { _id: '$channel', count: { $sum: 1 } } },
+                            { $match: { _id: { $ne: null } } },
+                            { $project: { _id: 0, value: { $toString: '$_id name' }, count: 1 } },
+                            { $sort: { count: -1 } },
+                        ],
+                    },
+                },
+            ]);
+            return result;
+        },
         fetchTasks: async (_, { campaignId, status, limit = 10, page = 1 }, context, info) => {
             const filter = { business: context.user.business };
             if (campaignId) filter.campaign = campaignId;

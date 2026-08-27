@@ -4,6 +4,8 @@ import { Api, Providers } from "../../models/ExternalServiceProviders.js";
 import { PROVIDER_MAP } from "../../utils/setup.js";
 import graphqlFields from "graphql-fields";
 import { getSelectFields } from "../../utils/graphqlTools.js";
+import { evaluateData, serializeBody } from "./helpers.js";
+import axios from "axios";
 export const serviceProvidersResolvers = {
     Query: {
         fetchProviders: async (_, { name, description, _id, page = 1, limit = 10 }, context) => {
@@ -136,6 +138,27 @@ export const serviceProvidersResolvers = {
             if (!provider) throw new GraphQLError("Provider not found", { extensions: { code: 'INVALID_INPUT' } });
             const api = await Api.create({ provider: providerId, title: title, description: description, version: version, schemas: schemas, requestTemplate: requestTemplate, requiredScopes: requiredScopes, metadata: metadata });
             return api
+        },
+        testApi: async (_, { apiId, authId, input, config }, context) => {
+            let [auth, api] = await Promise.all([ApiAuthenticators.findById(authId), Api.findById(apiId)]);
+            let serializedBody = null, evaluatedRequestTemplate = null;
+            if (!auth || !api) return res.status(404).json({ success: false, message: 'Authentication or API not found' });
+            try {
+                input = { ...config ?? {}, ...input ?? {} };
+                evaluatedRequestTemplate = evaluateData(api.requestTemplate, { input, auth });
+                serializedBody = serializeBody(evaluatedRequestTemplate.body, evaluatedRequestTemplate.headers['Content-Type']);
+            } catch (error) {
+                console.error("Error in testApi evaluateData", error);
+                throw new GraphQLError(error.message, { extensions: { code: 'Call Evaluation Failed' } });
+            }
+            try {
+                const { method, url: { base, path, params }, headers } = evaluatedRequestTemplate;
+                const { data } = await axios({ method, url: base + path, params, headers, data: serializedBody })
+                return { success: true, data };
+            } catch (error) {
+                console.error("Error in testApi axios", error);
+                throw new GraphQLError(error.message, { extensions: { code: 'Call Evaluation Failed' } });
+            }
         },
         updateApi: async (_, { id, title, description, version, schemas, requestTemplate, requiredScopes, metadata }, context) => {
             const api = await Api.findByIdAndUpdate(id, { title: title, description: description, version: version, schemas: schemas, requestTemplate: requestTemplate, requiredScopes: requiredScopes, metadata: metadata }, { new: true });

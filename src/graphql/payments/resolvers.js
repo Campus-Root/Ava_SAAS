@@ -46,6 +46,16 @@ export const paymentResolvers = {
             }
             return subscription;
         },
+        async fetchUsageLogs(_, { type, startDate, endDate }, context, info) {
+            const requestedFields = graphqlFields(info, {}, { processArguments: false });
+            const { rootFields, populateFields } = getSelectFields(requestedFields);
+            let filter = { business: context.user.business };
+            if (type) filter.type = type;
+            if (startDate) filter.createdAt = { $gte: startDate };
+            if (endDate) filter.createdAt = { $lte: endDate };
+            const usageLogs = await UsageLog.find(filter).sort({ createdAt: -1 }).populate({ path: "references.id" });
+            return usageLogs;
+        }
     },
     Mutation: {
         async createAVAPlan(_, { input }, context, info) {

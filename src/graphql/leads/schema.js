@@ -163,15 +163,9 @@ input contactLeadMessageInput {
   type: String
   data: JSON
 }
-  type FacetOption {
-  value: String
-  count: Int
-}
-
 type LeadFacets {
   status: [FacetOption]
   origin: [FacetOption]
-  tags: [FacetOption]
   template: [FacetOption]
 }
 
