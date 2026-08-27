@@ -6,8 +6,12 @@ import { buildUrlWithParams, getCallSessionForIncomingCall, getCallSessionForOut
 import { Channel } from '../models/Channels.js';
 import { Lead } from '../models/Leads.js';
 import { Conversation } from '../models/Conversations.js';
+import { leadRoutes } from './leadsRouter.js';
+import { conversationRoutes } from './conversationRouter.js';
 export const builtInRoutes = Router();
 builtInRoutes.get('/', (_, res) => res.status(200).send('Server running'));
+builtInRoutes.use('/lead', leadRoutes);
+builtInRoutes.use('/conversation', conversationRoutes);
 builtInRoutes.get('/exotel-redirect', async (request, reply) => {
     const { channelId, CallSid, CallFrom, CallTo, Direction, CustomField = "{}" } = request.query;
     // console.log(JSON.stringify({ query: request.query }, null, 2))
@@ -55,7 +59,7 @@ builtInRoutes.get('/initiate-conversation', async (req, res) => {
     if (!lead) lead = await Lead.create({ business: channel.business, name: "Anonymous", source: "webchat", tags: ["webchat"] });
     conversation = await Conversation.create({ business: channel.business, channel: channel._id, agent: agent._id, externalConversationId, lead: lead._id })
     await conversation.populate("lead", "name _id");
-    res.status(200).json({ success: true,message: "Conversation initiated successfully", data: conversation });
+    res.status(200).json({ success: true, message: "Conversation initiated successfully", data: conversation });
 });
 builtInRoutes.get('/get-agent', async (req, res) => {
     try {

@@ -13,13 +13,14 @@ import { Workflow } from '../../models/Workflow.js';
 import { DemonstrationModel } from '../../models/Demonstarations.js';
 export const agentResolvers = {
     Query: {
-        agents: async (_, { limit = 10, page = 1, isPublic, isFeatured, id }, context, info) => {
+        agents: async (_, { limit = 10, page = 1, isPublic, isFeatured, runtime, provider, id }, context, info) => {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { rootFields, populateFields } = getSelectFields(requestedFields.data);
-            const filter = {};
-            filter.business = context.user.business;
+            const filter = { business: context.user.business };
             if (isPublic !== undefined) filter.isPublic = isPublic;
             if (isFeatured !== undefined) filter.isFeatured = isFeatured;
+            if (runtime?.length) filter.runtime = { $in: runtime };
+            if (provider?.length) filter['modelConfig.provider'] = { $in: provider };
             if (id !== undefined) filter._id = id;
             const agents = await AgentModel.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).select(rootFields);
             const totalDocuments = await AgentModel.countDocuments(filter);
@@ -30,6 +31,27 @@ export const agentResolvers = {
             if (populateFields?.collections) await Collection.populate(agents, { path: 'collections', select: populateFields.collections });
             if (populateFields?.actions) await Action.populate(agents, { path: 'actions', select: populateFields.actions });
             return { data: agents, metaData: { page, limit, totalPages: Math.ceil(totalDocuments / limit), totalDocuments } };
+        },
+        fetchAgentFacets: async (_, __, context) => {
+            const baseFilter = { business: context.user.business };
+            const toFacet = (field) => [
+                { $group: { _id: `$${field}`, count: { $sum: 1 } } },
+                { $match: { _id: { $ne: null } } },
+                { $project: { _id: 0, value: { $toString: '$_id' }, count: 1 } },
+                { $sort: { count: -1 } },
+            ];
+            const [result] = await AgentModel.aggregate([
+                { $match: baseFilter },
+                {
+                    $facet: {
+                        runtime: toFacet('runtime'),
+                        provider: toFacet('modelConfig.provider'),
+                        isPublic: toFacet('isPublic'),
+                        isFeatured: toFacet('isFeatured'),
+                    },
+                },
+            ]);
+            return result;
         },
         ephemeralToken: async (_, { id, model, voice, provider }, context, info) => {
             try {
@@ -114,7 +136,7 @@ export const agentResolvers = {
         createAgent: async (_, { agent }, context, info) => {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { projection, nested } = flattenFields(requestedFields);
-            let { personalInfo, runtime, modelConfig, responseConfig, actions = [], channels = [], collections = [], workflow, isPublic, isFeatured } = agent;
+            let { personalInfo, runtime, modelConfig, modality, responseConfig, actions = [], channels = [], collections = [], workflow, isPublic, isFeatured } = agent;
             const [foundChannels, foundCollections, foundActions, foundWorkflow] = await Promise.all([
                 Promise.all(channels.map(id => Channel.findOne({ _id: id, business: context.user.business }, "_id"))),
                 Promise.all(collections.map(id => Collection.findOne({ _id: id, business: context.user.business }, "_id"))),
@@ -125,7 +147,7 @@ export const agentResolvers = {
             if (foundChannels.length !== channels.length) throw new GraphQLError("Channel not found", { extensions: { code: "CHANNEL_NOT_FOUND" } });
             if (foundCollections.length !== collections.length) throw new GraphQLError("Collection not found", { extensions: { code: "COLLECTION_NOT_FOUND" } });
             if (foundActions.length !== actions.length) throw new GraphQLError("Action not found", { extensions: { code: "ACTION_NOT_FOUND" } });
-            const newAgent = await AgentModel.create({ personalInfo, runtime, modelConfig, responseConfig, channels, actions, collections, workflow, business: context.user.business, createdBy: context.user._id, isPublic, isFeatured })
+            const newAgent = await AgentModel.create({ personalInfo, runtime, modelConfig, modality, responseConfig, channels, actions, collections, workflow, business: context.user.business, createdBy: context.user._id, isPublic, isFeatured })
             await Business.populate(newAgent, { path: 'business', select: nested.business });
             await Workflow.populate(newAgent, { path: 'workflow', select: nested.workflow });
             await User.populate(newAgent, { path: 'createdBy', select: nested.createdBy });
