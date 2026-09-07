@@ -39,7 +39,7 @@ const ModelConfigSchema = new Schema({
         type: String, required: true, validate: {
             validator: function (value) {
                 if (this.provider === 'custom') return true;
-                return ProviderConfig[this.provider]?.[this.$parent()?.runtime]?.models.includes(value);
+                return ProviderConfig[this.provider]?.[this._doc?.runtime]?.models.includes(value);
             }, message: props => `Model "${props.value}" is not valid for provider "${this.provider}"`
         }
     },
@@ -87,8 +87,8 @@ const RealtimeConfigSchema = new Schema({
         type: String, required: true,
         validate: {
             validator(value) {
-                const provider = this.$parent()?.modelConfig?.provider;
-                const runtime = this.$parent()?.runtime;
+                const provider = this._doc?.modelConfig?.provider;
+                const runtime = this._doc?.runtime;
                 return ProviderConfig[provider]?.[runtime]?.modalities?.includes(value);
             },
             message: props => `Invalid modality "${props.value}" for this provider`,
@@ -111,22 +111,22 @@ responseConfigPath.discriminator('openai', new Schema({
                 // server_vad only
                 prefix_padding_ms: {
                     type: Number,
-                    default: function () { return this.type === 'server_vad' ? 300 : undefined; },
+                    default: function () { return this._doc.audio.input.turn_detection.type === 'server_vad' ? 300 : undefined; },
                     validate: {
                         validator(value) {
                             if (value == null) return true;
-                            return this.type === 'server_vad';
+                            return this._doc.audio.input.turn_detection.type === 'server_vad';
                         },
                         message: 'prefix_padding_ms is only valid for server_vad',
                     },
                 },
                 silence_duration_ms: {
                     type: Number,
-                    default: function () { return this.type === 'server_vad' ? 500 : undefined; },
+                    default: function () { return this._doc.audio.input.turn_detection.type === 'server_vad' ? 500 : undefined; },
                     validate: {
                         validator(value) {
                             if (value == null) return true;
-                            return this.type === 'server_vad';
+                            return this._doc.audio.input.turn_detection.type === 'server_vad';
                         },
                         message: 'silence_duration_ms is only valid for server_vad',
                     },
@@ -135,11 +135,11 @@ responseConfigPath.discriminator('openai', new Schema({
                     type: Number,
                     min: 0,
                     max: 1,
-                    default: function () { return this.type === 'server_vad' ? 0.5 : undefined; },
+                    default: function () { return this._doc.audio.input.turn_detection.type === 'server_vad' ? 0.5 : undefined; },
                     validate: {
                         validator(value) {
                             if (value == null) return true;
-                            return this.type === 'server_vad';
+                            return this._doc.audio.input.turn_detection.type === 'server_vad';
                         },
                         message: 'threshold is only valid for server_vad',
                     },
@@ -148,11 +148,11 @@ responseConfigPath.discriminator('openai', new Schema({
                 eagerness: {
                     type: String,
                     enum: ['low', 'medium', 'high', 'auto'],
-                    default: function () { return this.type === 'semantic_vad' ? 'auto' : undefined; },
+                    default: function () { return this._doc.audio.input.turn_detection.type === 'semantic_vad' ? 'auto' : undefined; },
                     validate: {
                         validator(value) {
                             if (value == null) return true;
-                            return this.type === 'semantic_vad';
+                            return this._doc.audio.input.turn_detection.type === 'semantic_vad';
                         },
                         message: 'eagerness is only valid for semantic_vad',
                     },
@@ -161,7 +161,7 @@ responseConfigPath.discriminator('openai', new Schema({
         },
         output: {
             speed: { type: Number, min: 0.25, max: 2.0, default: 1.0 },
-            voice: { type: String, validate: { validator: function (value) { return ProviderConfig.openai?.voices.includes(value); }, message: props => `Invalid voice for openai` } },
+            voice: { type: String, validate: { validator: function (value) { return ProviderConfig.openai?.REALTIME?.voices.includes(value); }, message: props => `Invalid voice for openai` } },
         }
     }
 }, { _id: false }));
@@ -180,7 +180,7 @@ responseConfigPath.discriminator('gemini', new Schema({
     },
     realtimeOutputConfig: {
         speed: { type: Number, min: 0.25, max: 2.0, default: 1.0 },
-        voice: { type: String, validate: { validator: function (value) { return ProviderConfig.gemini?.voices.includes(value); }, message: props => `Invalid voice for openai` } },
+        voice: { type: String, validate: { validator: function (value) { return ProviderConfig.gemini?.REALTIME?.voices.includes(value); }, message: props => `Invalid voice for openai` } },
     },
     inputAudioTranscription: Schema.Types.Mixed,
     outputAudioTranscription: Schema.Types.Mixed,
