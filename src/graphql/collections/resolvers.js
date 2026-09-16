@@ -1,5 +1,4 @@
 import { Collection } from '../../models/Collection.js';
-import { Data } from '../../models/Data.js';
 import { AgentModel } from '../../models/Agent.js';
 import { User } from '../../models/User.js';
 import graphqlFields from 'graphql-fields';

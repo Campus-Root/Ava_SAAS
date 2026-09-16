@@ -1,20 +1,14 @@
-import { GraphQLError } from "graphql";
-import { Plan } from "../models/Plans.js";
-import { Business } from "../models/Business.js";
-import { Payment } from "../models/Payments.js";
 import { CURRENT_SUBSCRIPTION_STATUSES, Subscription } from "../models/Subscriptions.js";
 import { RazorPayService } from "./razorPayService.js";
 
-const PAID_PLAN_TYPES = new Set(["BASE", "TEST"]);
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-const gql = (message, code = "BAD_USER_INPUT") => new GraphQLError(message, { extensions: { code } });
 
-const razorpayPlanId = (plan) => plan?.paymentGateWay?.razorpay?.plan_id;
+export const razorpayPlanId = (plan) => plan?.paymentGateWay?.razorpay?.plan_id;
 
 const toUnixDate = (unix) => (unix ? new Date(Number(unix) * 1000) : null);
 
-const checkoutSubscription = (rzpSub, amount, currency = "INR") => ({
+export const checkoutSubscription = (rzpSub, amount, currency = "INR") => ({
     keyId: RazorPayService.getPublicKey(),
     mode: "subscription",
     subscriptionId: rzpSub?.id || null,
@@ -25,7 +19,7 @@ const checkoutSubscription = (rzpSub, amount, currency = "INR") => ({
     shortUrl: rzpSub?.short_url || null
 });
 
-const checkoutOrder = (order, amountRupees, currency = "INR") => ({
+export const checkoutOrder = (order, amountRupees, currency = "INR") => ({
     keyId: RazorPayService.getPublicKey(),
     mode: "order",
     subscriptionId: null,
@@ -36,72 +30,9 @@ const checkoutOrder = (order, amountRupees, currency = "INR") => ({
     shortUrl: null
 });
 
-export async function populateSubscription(subscription) {
-    if (!subscription) return null;
-    await subscription.populate([
-        { path: "plan" },
-        { path: "pendingChange.targetPlan" },
-        { path: "createdBy", select: "name email role" },
-        { path: "business", select: "name logoURL credits" }
-    ]);
-    return subscription;
-}
-
-export async function getCurrentSubscription(businessId) {
-    const business = await Business.findById(businessId).select("credits.currentSubscription");
-    if (business?.credits?.currentSubscription) {
-        const byPointer = await Subscription.findById(business.credits.currentSubscription);
-        if (byPointer && CURRENT_SUBSCRIPTION_STATUSES.includes(byPointer.status)) {
-            return populateSubscription(byPointer);
-        }
-    }
-    const current = await Subscription.findOne({
-        business: businessId,
-        kind: "subscription",
-        status: { $in: CURRENT_SUBSCRIPTION_STATUSES }
-    }).sort({ createdAt: -1 });
-    return populateSubscription(current);
-}
-
-export async function getSubscriptionHistory(businessId, { page = 1, limit = 10 } = {}) {
-    const safePage = Math.max(1, Number(page) || 1);
-    const safeLimit = Math.min(100, Math.max(1, Number(limit) || 10));
-    const filter = { business: businessId, kind: "subscription" };
-    const skip = (safePage - 1) * safeLimit;
-    const [data, totalDocuments] = await Promise.all([
-        Subscription.find(filter).sort({ createdAt: -1 }).skip(skip).limit(safeLimit).populate("plan pendingChange.targetPlan createdBy"),
-        Subscription.countDocuments(filter)
-    ]);
-    return { data, metaData: { page: safePage, limit: safeLimit, totalPages: Math.ceil(totalDocuments / safeLimit) || 0, totalDocuments } };
-}
-
-export async function getSubscriptionById(businessId, id) {
-    if (!id) throw gql("Subscription id is required");
-    try {
-        const subscription = await Subscription.findOne({ _id: id, business: businessId, kind: "subscription" });
-        if (!subscription) throw gql("Subscription not found", "NOT_FOUND");
-        return populateSubscription(subscription);
-    } catch (error) {
-        if (error instanceof GraphQLError) throw error;
-        if (error?.name === "CastError") throw gql("Subscription not found", "NOT_FOUND");
-        throw error;
-    }
-}
-
-
-async function setActiveSubscription(businessId, subscription, plan, { planActive = true } = {}) {
-    const update = {
-        "credits.currentSubscription": subscription._id,
-        "credits.active": planActive,
-        "credits.lastUpdated": new Date()
-    };
-    await Business.findByIdAndUpdate(businessId, { $set: update });
-}
-
-async function supersedeCurrent(businessId, { reason, exceptId } = {}) {
+export const supersedeCurrent = async (businessId, { reason, exceptId } = {}) => {
     const filter = {
         business: businessId,
-        kind: "subscription",
         status: { $in: CURRENT_SUBSCRIPTION_STATUSES }
     };
     if (exceptId) filter._id = { $ne: exceptId };
@@ -151,7 +82,7 @@ export function calculateUpgradeProration(currentPlan, targetPlan, subscription,
     };
 }
 
-function applyGatewayBilling(subscription, rzpSub) {
+export const applyGatewayBilling = (subscription, rzpSub) => {
     if (!rzpSub) return subscription;
     subscription.gatewayPayload = rzpSub;
     if (rzpSub.id) subscription.gatewaySubscriptionId = rzpSub.id;
@@ -167,54 +98,9 @@ function applyGatewayBilling(subscription, rzpSub) {
     return subscription;
 }
 
-export async function startSubscription({ planId, user }) {
-    const plan = await Plan.findById(planId);
-    if (!plan) throw gql("Plan not found", "NOT_FOUND");
-    if (plan.type === "TOPUP") throw gql("Use purchaseTopup for top-up plans");
-    const current = await Subscription.findOne({ business: user.business, kind: "subscription", status: { $in: CURRENT_SUBSCRIPTION_STATUSES } }).populate("plan");
-    if (current && PAID_PLAN_TYPES.has(current.plan?.type) && !["created", "pending_payment"].includes(current.status)) throw gql("An active paid subscription already exists. Use upgrade or downgrade.");
-    // if (plan.type === "FREE") {
-    //     const business = await Business.findById(user.business).select("freeTrailClaimed");
-    //     if (business?.freeTrailClaimed) throw gql("Free trial already claimed");
-    //     if (current) await supersedeCurrent(user.business, { reason: "Replaced by free trial" });
-    //     const periodEnd = new Date(Date.now() + (plan.validity || 7) * MS_PER_DAY);
-    //     const subscription = await Subscription.create({
-    //         business: user.business,
-    //         createdBy: user._id,
-    //         plan: plan._id,
-    //         planCode: plan.code,
-    //         kind: "subscription",
-    //         gateway: "none",
-    //         status: "active",
-    //         amount: plan.amount,
-    //         creditsPerCycle: plan.credits,
-    //         spendRatio: plan.spendRatio,
-    //         billing: { periodStart: new Date(), periodEnd, nextChargeAt: periodEnd, paidCount: 1 },
-    //         startedAt: new Date()
-    //     });
-    //     await Business.findByIdAndUpdate(user.business, { $set: { freeTrailClaimed: true } });
-    //     await setActiveSubscription(user.business, subscription, plan, { planActive: true });
-    //     return { subscription: await populateSubscription(subscription), checkout: null, proration: null };
-    // }
-    if (!razorpayPlanId(plan)) throw gql("Plan is missing a Razorpay plan id");
-    if (current) await supersedeCurrent(user.business, { reason: `Replaced by ${plan.code}` });
-    let subscription, rzpSub;
-    try {
-        subscription = await Subscription.create({ business: user.business, createdBy: user._id, plan: plan._id, planCode: plan.code, kind: "subscription", gateway: "razorpay", status: "pending_payment", amount: plan.amount, creditsPerCycle: plan.credits, spendRatio: plan.spendRatio });
-        rzpSub = await RazorPayService.createSubscription({ plan_id: razorpayPlanId(plan), notes: { subscriptionId: subscription._id.toString(), businessId: user.business.toString(), planId: plan._id.toString(), planCode: plan.code, action: "start", credits: String(plan.credits || 0) } });
-        applyGatewayBilling(subscription, rzpSub);
-        await subscription.save();
-    } catch (error) {
-        await Subscription.findByIdAndDelete(subscription._id);
-        throw error;
-    }
-    return { subscription: await populateSubscription(subscription), checkout: checkoutSubscription(rzpSub, plan.amount), proration: null };
-}
-
 // export async function upgradeSubscription({ targetPlanCode, user }) {
 //     const subscription = await Subscription.findOne({
 //         business: user.business,
-//         kind: "subscription",
 //         status: { $in: ["active", "authenticated", "pending_downgrade", "cancel_at_period_end"] }
 //     }).populate("plan");
 //     if (!subscription) throw gql("No active subscription to upgrade");
@@ -304,7 +190,6 @@ async function applyPaidUpgrade({ subscription, target }) {
 // export async function downgradeSubscription({ targetPlanCode, user }) {
 //     const subscription = await Subscription.findOne({
 //         business: user.business,
-//         kind: "subscription",
 //         status: { $in: ["active", "authenticated", "pending_downgrade"] }
 //     }).populate("plan");
 //     if (!subscription) throw gql("No active subscription to downgrade");
@@ -343,7 +228,6 @@ async function applyPaidUpgrade({ subscription, target }) {
 // export async function cancelSubscription({ user, reason = "Cancelled by user" }) {
 //     const subscription = await Subscription.findOne({
 //         business: user.business,
-//         kind: "subscription",
 //         status: { $in: ["active", "authenticated", "pending_downgrade", "paused", "halted"] }
 //     });
 //     if (!subscription) throw gql("No cancellable subscription found");
@@ -367,7 +251,6 @@ async function applyPaidUpgrade({ subscription, target }) {
 // export async function pauseSubscription({ user }) {
 //     const subscription = await Subscription.findOne({
 //         business: user.business,
-//         kind: "subscription",
 //         status: { $in: ["active", "authenticated", "pending_downgrade"] }
 //     }).populate("plan");
 //     if (!subscription) throw gql("No active subscription to pause");
@@ -382,7 +265,6 @@ async function applyPaidUpgrade({ subscription, target }) {
 // export async function resumeSubscription({ user }) {
 //     const subscription = await Subscription.findOne({
 //         business: user.business,
-//         kind: "subscription",
 //         status: { $in: ["paused", "cancel_at_period_end", "halted"] }
 //     }).populate("plan");
 //     if (!subscription) throw gql("No paused or cancelling subscription to resume");
@@ -402,16 +284,6 @@ async function applyPaidUpgrade({ subscription, target }) {
 // }
 
 // export async function purchaseTopup({ code, user }) {
-//     const plan = await loadPublicPlanByCode(code);
-//     if (plan.type !== "TOPUP") throw gql("Plan is not a top-up");
-//     const current = await getCurrentSubscription(user.business);
-//     if (!current || !["active", "authenticated", "pending_downgrade", "cancel_at_period_end"].includes(current.status)) {
-//         throw gql("An active subscription is required to buy a top-up");
-//     }
-//     const allowed = (current.plan?.allowedTopUps || []).map((item) => (item?._id || item).toString());
-//     if (allowed.length && !allowed.includes(plan._id.toString())) {
-//         throw gql("This top-up is not allowed on the current plan");
-//     }
 //     const receiptId = `tp${user.business.toString().slice(-8)}${Date.now().toString().slice(-8)}`;
 //     const order = await RazorPayService.createOrder({
 //         amount: plan.amount.value,
@@ -426,12 +298,7 @@ async function applyPaidUpgrade({ subscription, target }) {
 //             credits: String(plan.credits || 0)
 //         }
 //     });
-//     await Payment.create({
-//         business: user.business,
-//         subscription: current._id,
-//         gateway: "razorpay",
-//         gatewayReference: { orderId: order.id, action: "topup", planId: plan._id.toString() },
-//         status: "authorized"
+
 //     });
 //     return {
 //         subscription: current,

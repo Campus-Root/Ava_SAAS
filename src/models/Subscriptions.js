@@ -14,7 +14,6 @@ const SubscriptionSchema = new Schema({
     createdBy: { type: Schema.Types.ObjectId, ref: 'Users' },
     plan: { type: Schema.Types.ObjectId, ref: 'Plans', required: true },
     planCode: { type: String, required: true, index: true },
-    kind: { type: String, enum: ['subscription', 'topup'], default: 'subscription' },
     gateway: { type: String, enum: ['razorpay', 'none'], default: 'razorpay' },
     gatewaySubscriptionId: { type: String, index: true, sparse: true },
     status: { type: String, enum: SUBSCRIPTION_STATUS, default: 'created', index: true },
@@ -62,7 +61,7 @@ SubscriptionSchema.index(
     {
         unique: true,
         name: 'one_current_subscription_per_business',
-        partialFilterExpression: { status: { $in: CURRENT_SUBSCRIPTION_STATUSES }, kind: 'subscription' }
+        partialFilterExpression: { status: { $in: CURRENT_SUBSCRIPTION_STATUSES } }
     }
 );
 

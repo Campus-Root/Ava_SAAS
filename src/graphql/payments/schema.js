@@ -18,6 +18,15 @@ type Plan {
     createdAt: DateTime
     updatedAt: DateTime
 }
+type Payment {
+    _id: ID!
+    business: Business
+    subscription: Subscription
+    gateway: String
+    gatewayReference: JSON
+    status: String
+    notes: JSON
+}
 type AmountSchema {
     value: Int
     currency: String
@@ -65,7 +74,6 @@ type Subscription {
     createdBy: User
     plan: Plan
     planCode: String
-    kind: String
     gateway: String
     gatewaySubscriptionId: String
     status: SubscriptionStatusEnum
@@ -93,16 +101,9 @@ type RazorpayCheckout {
     currency: String
     shortUrl: String
 }
-type ProrationPreview {
-    remainingDays: Int
-    unusedAmount: Int
-    chargeAmount: Int
-    creditDelta: Int
-}
 type SubscriptionCheckoutPayload {
     subscription: Subscription
     checkout: RazorpayCheckout
-    proration: ProrationPreview
 }
 type SubscriptionPagination {
     data: [Subscription]
@@ -135,6 +136,10 @@ input PlanInput {
     allowedTopUps: [ID]
     autoRenew: Boolean
 }
+type PaymentCheckoutPayload {
+    payment: Payment
+    checkout: RazorpayCheckout
+}
 type Query {
     fetchPublicPlans(code: String, name: String, type: PlanTypeEnum, status: PlanStatusEnum, id: ID): [Plan]
     fetchPlans(code: String, name: String, type: PlanTypeEnum, status: PlanStatusEnum, id: ID): [Plan] @requireScope(scope: "super:all")
@@ -147,12 +152,12 @@ type Mutation {
     createAVAPlan(input: PlanInput!): Plan @requireScope(scope: "super:all")
     updateAVAPlan(id: ID!, input: PlanInput!): Plan @requireScope(scope: "super:all")
     deleteAVAPlan(id: ID!): Boolean @requireScope(scope: "super:all")
-    startSubscription(code: String!): SubscriptionCheckoutPayload @requireScope(scope: "subscription:billing") @requireBusinessAccess
-    upgradeSubscription(targetPlanCode: String!): SubscriptionCheckoutPayload @requireScope(scope: "subscription:upgrade") @requireBusinessAccess
-    downgradeSubscription(targetPlanCode: String!): Subscription @requireScope(scope: "subscription:downgrade") @requireBusinessAccess
-    cancelSubscription: Subscription @requireScope(scope: "subscription:cancel") @requireBusinessAccess
-    pauseSubscription: Subscription @requireScope(scope: "subscription:billing") @requireBusinessAccess
-    resumeSubscription: Subscription @requireScope(scope: "subscription:billing") @requireBusinessAccess
-    purchaseTopup(code: String!): SubscriptionCheckoutPayload @requireScope(scope: "subscription:billing") @requireBusinessAccess
+    startSubscription(planId: ID!): SubscriptionCheckoutPayload @requireScope(scope: "subscription:billing") @requireBusinessAccess
+    # upgradeSubscription(targetPlanCode: String!): SubscriptionCheckoutPayload @requireScope(scope: "subscription:upgrade") @requireBusinessAccess
+    # downgradeSubscription(targetPlanCode: String!): Subscription @requireScope(scope: "subscription:downgrade") @requireBusinessAccess
+    # cancelSubscription: Subscription @requireScope(scope: "subscription:cancel") @requireBusinessAccess
+    # pauseSubscription: Subscription @requireScope(scope: "subscription:billing") @requireBusinessAccess
+    # resumeSubscription: Subscription @requireScope(scope: "subscription:billing") @requireBusinessAccess
+    purchaseTopup(planId: ID!): PaymentCheckoutPayload @requireScope(scope: "subscription:billing") @requireBusinessAccess
 }
 `;
