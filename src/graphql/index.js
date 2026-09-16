@@ -189,6 +189,8 @@ export const registerApollo = async (app, httpServer) => {
     'endDemo',
     'StartDemo',
     'EndDemo',
+    'fetchPublicPlans',
+    'FetchPublicPlans',
   ];
 
   // Helper function to extract operation name from GraphQL query

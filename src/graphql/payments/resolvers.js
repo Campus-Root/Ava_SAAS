@@ -1,158 +1,131 @@
 import { Plan } from "../../models/Plans.js";
-import graphqlFields from "graphql-fields";
-import { flattenFields, getSelectFields } from '../../utils/graphqlTools.js';
-import { RazorPayService } from "../../services/razorPayService.js";
-import { GraphQLError } from "graphql";
-import { Business } from "../../models/Business.js";
 import { Subscription } from "../../models/Subscriptions.js";
-import { postTask } from "../../services/agenda.js";
+import graphqlFields from "graphql-fields";
+import { getSelectFields } from '../../utils/graphqlTools.js';
+import { GraphQLError } from "graphql";
+import {
+    // cancelSubscription as cancelSubscriptionService,
+    // downgradeSubscription as downgradeSubscriptionService,
+    getCurrentSubscription,
+    getSubscriptionById,
+    getSubscriptionHistory,
+    // pauseSubscription as pauseSubscriptionService,
+    // purchaseTopup as purchaseTopupService,
+    // resumeSubscription as resumeSubscriptionService,
+    startSubscription as startSubscriptionService,
+    // upgradeSubscription as upgradeSubscriptionService
+} from "../../services/subscriptionService.js";
+
+const gql = (message, code = "BAD_USER_INPUT") => new GraphQLError(message, { extensions: { code } });
+
+const compactInput = (input = {}) => {
+    const update = {};
+    for (const [key, value] of Object.entries(input)) {
+        if (value !== undefined) update[key] = value;
+    }
+    return update;
+};
+
+const handlePlanWriteError = (error) => {
+    if (error?.code === 11000) throw gql("Plan code already exists");
+    if (error?.name === "ValidationError") throw gql(error.message);
+    throw error;
+};
+
+const populateAllowedTopUps = async (plans, info) => {
+    const requestedFields = graphqlFields(info, {}, { processArguments: false });
+    const source = requestedFields.data || requestedFields;
+    const { populateFields } = getSelectFields(source);
+    if (!populateFields?.allowedTopUps) return plans;
+    await Plan.populate(plans, { path: "allowedTopUps", select: populateFields.allowedTopUps });
+    return plans;
+};
+
 export const paymentResolvers = {
     Query: {
-        async fetchPlans(_, { code, name, type, status = 'active', id }, context, info) {
-            const requestedFields = graphqlFields(info, {}, { processArguments: false });
-            const { rootFields, populateFields } = getSelectFields(requestedFields);
+        async fetchPlans(_, { code, name, type, status, id }, context, info) {
             const filter = {};
             if (id) filter._id = id;
             if (code) filter.code = code;
-            if (name) filter.name = name;
+            if (name) filter.name = { $regex: name, $options: "i" };
             if (status) filter.status = status;
             if (type) filter.type = type;
-            const Plans = await Plan.find(filter).sort({ createdAt: -1 }).populate({ path: "allowedTopUps", select: rootFields });
-            return Plans;
+            const plans = await Plan.find(filter).sort({ createdAt: -1 });
+            await populateAllowedTopUps(plans, info);
+            return plans;
         },
-        async fetchPublicPlans(_, { code, name, id, status = 'active', type }, context, info) {
-            const requestedFields = graphqlFields(info, {}, { processArguments: false });
-            const { rootFields, populateFields } = getSelectFields(requestedFields);
+        async fetchPublicPlans(_, { code, name, id, status = "active", type }, context, info) {
             const filter = { public: true };
             if (id) filter._id = id;
             if (code) filter.code = code;
-            if (name) filter.name = name;
+            if (name) filter.name = { $regex: name, $options: "i" };
             if (status) filter.status = status;
             if (type) filter.type = type;
-            const Plans = await Plan.find(filter).sort({ createdAt: -1 }).populate({ path: "allowedTopUps", select: rootFields });
-            return Plans;
+            const plans = await Plan.find(filter).sort({ createdAt: -1 });
+            await populateAllowedTopUps(plans, info);
+            return plans;
         },
-        async fetchSubscription(_, { id }, context, info) {
-            const subscription = await Subscription.findById(id).select('plan gatewayReference metadata').populate('plan', 'type');
-            if (!subscription) throw new GraphQLError("Subscription not found", { extensions: { code: "BAD_USER_INPUT" } });
-            if (subscription.gateway === "razorpay") {
-                let ref = await RazorPayService.fetchSubscriptionById(subscription.gatewayReference.id);
-                if (ref.status !== subscription.metadata.status) {
-                    subscription.gatewayReference = ref
-                    subscription.metadata.expiresAt = new Date(subscription.gatewayReference.current_end * 1000);
-                    subscription.metadata.status = subscription.gatewayReference.status;
-                    await subscription.save();
-                }
-            }
-            return subscription;
+        async currentSubscription(_, __, context) {
+            return getCurrentSubscription(context.user.business);
         },
-        async fetchUsageLogs(_, { type, startDate, endDate }, context, info) {
-            const requestedFields = graphqlFields(info, {}, { processArguments: false });
-            const { rootFields, populateFields } = getSelectFields(requestedFields);
-            let filter = { business: context.user.business };
-            if (type) filter.type = type;
-            if (startDate) filter.createdAt = { $gte: startDate };
-            if (endDate) filter.createdAt = { $lte: endDate };
-            const usageLogs = await UsageLog.find(filter).sort({ createdAt: -1 }).populate({ path: "references.id" });
-            return usageLogs;
+        async subscriptionHistory(_, { page = 1, limit = 10 }, context) {
+            return getSubscriptionHistory(context.user.business, { page, limit });
+        },
+        async subscription(_, { id }, context) {
+            return getSubscriptionById(context.user.business, id);
         }
     },
     Mutation: {
         async createAVAPlan(_, { input }, context, info) {
-            const requestedFields = graphqlFields(info, {}, { processArguments: false });
-            const { projection, nested } = flattenFields(requestedFields);
-            const plan = await Plan.create(input);
-            await plan.populate(plan, { path: "allowedTopUps", select: projection });
-            return plan;
+            if (!input?.name) throw gql("Plan name is required");
+            if (!input?.type) throw gql("Plan type is required");
+            if (!input?.code) throw gql("Plan code is required");
+            try {
+                const plan = await Plan.create(compactInput(input));
+                await populateAllowedTopUps(plan, info);
+                return plan;
+            } catch (error) {
+                handlePlanWriteError(error);
+            }
         },
         async updateAVAPlan(_, { id, input }, context, info) {
-            const requestedFields = graphqlFields(info, {}, { processArguments: false });
-            const { projection, nested } = flattenFields(requestedFields);
-            const plan = await Plan.findByIdAndUpdate(id, input, { new: true }).populate({ path: "allowedTopUps", select: projection });
-            return plan;
-        },
-        async deleteAVAPlan(_, { id }, context, info) {
-            await Plan.findByIdAndDelete(id);
-            return true;
-        },
-        async startPayment(_, { planId, gateway = "razorpay", paymentType = "subscription", startDate = null }, context, info) {
-            const [plan, business] = await Promise.all([
-                Plan.findById(planId).select('type amount validity credits spendRatio paymentGateWay'),
-                Business.findById(context.user.business).select('credits freeTrailClaimed')
-            ]);
-            if (!plan) throw new GraphQLError("Plan not found", { extensions: { code: "BAD_USER_INPUT" } });
-            const existingPlan = await Subscription.findById(business?.credits?.activePlan).select('plan metadata gateway gatewayReference inActive').populate('plan', 'type');
-            if (existingPlan && !existingPlan.inActive) {
-                console.log(existingPlan.inActive)
-                if (existingPlan.plan.type !== "FREE") {
-                    switch (existingPlan.gateway) {
-                        case "razorpay":
-                            await RazorPayService.cancelSubscription(existingPlan.gatewayReference.id);
-                            break;
-                        default:
-                            throw new GraphQLError("Invalid gateway", { extensions: { code: "BAD_USER_INPUT" } });
-                    }
-                }
-                else if (plan.type === "FREE") {
-                    throw new GraphQLError("You already have a free plan that expires at " + existingPlan.metadata.expiresAt, { extensions: { code: "BAD_USER_INPUT" } });
-                }
-                if (!startDate) startDate = new Date(existingPlan.metadata.expiresAt);
-                existingPlan.metadata.cancelledAt = new Date()
-                existingPlan.metadata.cancelledReason = "Upgraded to a new plan"
-                existingPlan.inActive = true;
-                await Promise.all([existingPlan.save()]);
-            }
-            switch (plan.type) {
-                case "FREE":
-                    {
-                        if (business?.freeTrailClaimed) throw new GraphQLError("Free trail already claimed, Contact support to upgrade your plan", { extensions: { code: "BAD_USER_INPUT" } });
-                        const subscription = await Subscription.create({
-                            business: context.user.business,
-                            createdBy: context.user._id,
-                            plan: planId,
-                            gateway,
-                            type: paymentType,
-                            events: {
-                                activated: new Date()
-                            },
-                            metadata: {
-                                expiresAt: new Date(Date.now() + plan.validity * 24 * 60 * 60 * 1000)
-                            }
-                        });
-                        await postTask("reset-credits", { id: subscription._id.toString(), businessId: context.user.business.toString(), planId: planId.toString() }, new Date(subscription.metadata.expiresAt).toISOString());
-                        await business.UpdateCredits({ operation: 'set', llmCredits: plan.credits.llm, knowledgeCredits: plan.credits.knowledge, miscellaneousCredits: plan.credits.miscellaneous, spendRatio: plan.spendRatio, isPlanInActive: false, activePlan: subscription._id });
-                        business.freeTrailClaimed = true;
-                        await business.save()
-                        return subscription;
-                    }
-                case "TEST":
-                case "BASE":
-                    {
-                        const subscription = await Subscription.create({ business: context.user.business, createdBy: context.user._id, plan: planId, gateway, type: paymentType, amount: plan.amount, metadata: { expiresAt: new Date(Date.now() + plan.validity * 24 * 60 * 60 * 1000) } });
-                        switch (gateway) {
-                            case "razorpay":
-                                subscription.gatewayReference = await RazorPayService.createSubscription({ plan_id: plan.paymentGateWay.razorpay.plan_id, notes: { subscriptionId: subscription._id.toString(), businessId: context.user.business.toString(), planId: planId.toString() }, startDate: startDate });
-                                subscription.credits.lastGrantedCycle = subscription.gatewayReference.paid_count;
-                                subscription.credits.lastGrantedAt = new Date();
-                                break;
-                            default:
-                                throw new GraphQLError("Invalid gateway", { extensions: { code: "BAD_USER_INPUT" } });
-                        }
-                        await subscription.save()
-                        return subscription;
-                    }
+            try {
+                const plan = await Plan.findByIdAndUpdate(id, compactInput(input), { new: true, runValidators: true });
+                if (!plan) throw gql("Plan not found", "NOT_FOUND");
+                await populateAllowedTopUps(plan, info);
+                return plan;
+            } catch (error) {
+                if (error instanceof GraphQLError) throw error;
+                handlePlanWriteError(error);
             }
         },
-        async cancelSubscription(_, { id }, context, info) {
-            const subscription = await Subscription.findById(id);
-            if (!subscription) throw new GraphQLError("Subscription not found", { extensions: { code: "BAD_USER_INPUT" } });
-            subscription.metadata.cancelledAt = new Date();
-            subscription.metadata.cancelledReason = "Cancelled by user";
-            subscription.metadata.inActive = true;
-            subscription.metadata.status = "cancelled";
-            await subscription.save();
-            await RazorPayService.cancelSubscription(subscription.gatewayReference.id);
+        async deleteAVAPlan(_, { id }) {
+            const inUse = await Subscription.countDocuments({ plan: id });
+            if (inUse) throw gql("Cannot delete a plan that is used by subscriptions");
+            const deleted = await Plan.findByIdAndDelete(id);
+            if (!deleted) throw gql("Plan not found", "NOT_FOUND");
             return true;
+        },
+        async startSubscription(_, { planId }, context) {
+            return startSubscriptionService({ planId, user: context.user });
+        },
+        async upgradeSubscription(_, { targetPlanCode }, context) {
+            // return upgradeSubscriptionService({ targetPlanCode, user: context.user });
+        },
+        async downgradeSubscription(_, { targetPlanCode }, context) {
+            // return downgradeSubscriptionService({ targetPlanCode, user: context.user });
+        },
+        async cancelSubscription(_, __, context) {
+            // return cancelSubscriptionService({ user: context.user });
+        },
+        async pauseSubscription(_, __, context) {
+            // return pauseSubscriptionService({ user: context.user });
+        },
+        async resumeSubscription(_, __, context) {
+            // return resumeSubscriptionService({ user: context.user });
+        },
+        async purchaseTopup(_, { code }, context) {
+            // return purchaseTopupService({ code, user: context.user });
         }
     }
 };

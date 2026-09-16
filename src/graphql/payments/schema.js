@@ -4,15 +4,17 @@ type Plan {
     code: String
     name: String
     description: String
-    price:JSON
+    amount: AmountSchema
     type: PlanTypeEnum
     validity: Int
-    credits:CreditsType
+    credits: Int
     spendRatio: Int
     status: PlanStatusEnum
     features: [String]
     allowedTopUps: [Plan]
     autoRenew: Boolean
+    public: Boolean
+    paymentGateWay: JSON
     createdAt: DateTime
     updatedAt: DateTime
 }
@@ -20,38 +22,98 @@ type AmountSchema {
     value: Int
     currency: String
 }
+input AmountSchemaInput {
+    value: Int
+    currency: String
+}
+enum SubscriptionStatusEnum {
+    created
+    authenticated
+    active
+    pending_downgrade
+    cancel_at_period_end
+    paused
+    halted
+    cancelled
+    expired
+    completed
+}
+enum PendingChangeTypeEnum {
+    upgrade
+    downgrade
+    cancel
+}
+type SubscriptionBilling {
+    periodStart: DateTime
+    periodEnd: DateTime
+    nextChargeAt: DateTime
+    paidCount: Int
+    totalCount: Int
+}
+type PendingChange {
+    type: PendingChangeTypeEnum
+    targetPlan: Plan
+    targetPlanCode: String
+    applyAt: DateTime
+    chargeAmount: Int
+    creditDelta: Int
+    orderId: String
+}
 type Subscription {
     _id: ID!
     business: Business
     createdBy: User
     plan: Plan
+    planCode: String
+    kind: String
     gateway: String
-    type: String
-    events: JSON
+    gatewaySubscriptionId: String
+    status: SubscriptionStatusEnum
     amount: AmountSchema
-    gatewayFee: AmountSchema
-    tax: AmountSchema
-    netAmount: AmountSchema
-    billing: JSON
-    gatewayReference: JSON
-    metadata: JSON
+    creditsPerCycle: Int
+    spendRatio: Int
+    billing: SubscriptionBilling
+    pendingChange: PendingChange
+    cancelAtPeriodEnd: Boolean
+    cancelledAt: DateTime
+    cancelReason: String
+    startedAt: DateTime
+    endedAt: DateTime
+    shortUrl: String
     createdAt: DateTime
     updatedAt: DateTime
 }
-type CreditsType {
-    llm: Int
-    knowledge: Int
-    miscellaneous: Int
+type RazorpayCheckout {
+    keyId: String
+    mode: String
+    subscriptionId: String
+    orderId: String
+    amount: Int
+    amountPaise: Int
+    currency: String
+    shortUrl: String
 }
-    input CreditsTypeInput {
-    llm: Int
-    knowledge: Int
-    miscellaneous: Int
+type ProrationPreview {
+    remainingDays: Int
+    unusedAmount: Int
+    chargeAmount: Int
+    creditDelta: Int
 }
+type SubscriptionCheckoutPayload {
+    subscription: Subscription
+    checkout: RazorpayCheckout
+    proration: ProrationPreview
+}
+type SubscriptionPagination {
+    data: [Subscription]
+    metaData: PaginationMetaData
+}
+
 enum PlanTypeEnum {
     FREE
     BASE
     TOPUP
+    TEST
 }
 enum PlanStatusEnum {
     active
@@ -61,37 +123,36 @@ input PlanInput {
     code: String
     name: String
     description: String
-    price:JSON
+    amount: AmountSchemaInput
+    public: Boolean
+    paymentGateWay: JSON
     type: PlanTypeEnum
     validity: Int
-    credits:CreditsTypeInput
+    credits: Int
     spendRatio: Int
     status: PlanStatusEnum
     features: [String]
     allowedTopUps: [ID]
     autoRenew: Boolean
-} 
-type UsageLog {
-    _id: ID!
-    business: Business
-    references: JSON
-    model: JSON
-    event: JSON
-    usage: JSON
-    cost: JSON
 }
 type Query {
     fetchPublicPlans(code: String, name: String, type: PlanTypeEnum, status: PlanStatusEnum, id: ID): [Plan]
     fetchPlans(code: String, name: String, type: PlanTypeEnum, status: PlanStatusEnum, id: ID): [Plan] @requireScope(scope: "super:all")
-    fetchSubscription(id: ID!): Subscription @requireScope(scope: "subscription:read")
-    fetchUsageLogs(type: String, startDate: DateTime, endDate: DateTime): [UsageLog] @requireScope(scope: "subscription:read")
+    currentSubscription: Subscription @requireScope(scope: "subscription:read") @requireBusinessAccess
+    subscriptionHistory(page: Int, limit: Int): SubscriptionPagination @requireScope(scope: "subscription:read") @requireBusinessAccess
+    subscription(id: ID!): Subscription @requireScope(scope: "subscription:read") @requireBusinessAccess
 }
 
 type Mutation {
     createAVAPlan(input: PlanInput!): Plan @requireScope(scope: "super:all")
     updateAVAPlan(id: ID!, input: PlanInput!): Plan @requireScope(scope: "super:all")
     deleteAVAPlan(id: ID!): Boolean @requireScope(scope: "super:all")
-    startPayment(planId: ID!, gateway: String, paymentType: String, startDate:DateTime): Subscription @requireScope(scope: "subscription:upgrade")
-    cancelSubscription(id: ID!): Boolean @requireScope(scope: "subscription:cancel")
+    startSubscription(code: String!): SubscriptionCheckoutPayload @requireScope(scope: "subscription:billing") @requireBusinessAccess
+    upgradeSubscription(targetPlanCode: String!): SubscriptionCheckoutPayload @requireScope(scope: "subscription:upgrade") @requireBusinessAccess
+    downgradeSubscription(targetPlanCode: String!): Subscription @requireScope(scope: "subscription:downgrade") @requireBusinessAccess
+    cancelSubscription: Subscription @requireScope(scope: "subscription:cancel") @requireBusinessAccess
+    pauseSubscription: Subscription @requireScope(scope: "subscription:billing") @requireBusinessAccess
+    resumeSubscription: Subscription @requireScope(scope: "subscription:billing") @requireBusinessAccess
+    purchaseTopup(code: String!): SubscriptionCheckoutPayload @requireScope(scope: "subscription:billing") @requireBusinessAccess
 }
 `;

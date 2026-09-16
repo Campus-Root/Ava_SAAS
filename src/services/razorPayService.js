@@ -12,12 +12,9 @@ export class RazorPayService {
         return await this.client.orders.create({ amount: Math.round(amount * 100), currency, receipt: receiptId, notes, });
     }
 
-    //   static verifyPaymentSignature({ order_id, payment_id, signature }) {
-    //     const body = `${order_id}|${payment_id}`;
-    //     const expectedSignature = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET).update(body).digest("hex");
-    //     if (expectedSignature !== signature) throw new Error("Invalid Razorpay signature");
-    //     return true;
-    //   }
+    static getPublicKey() {
+        return process.env.RAZORPAY_KEY_ID;
+    }
 
     static async verifyPayment(order_id, payment_id, signature) {
         try {
@@ -66,8 +63,14 @@ export class RazorPayService {
     static async fetchSubscriptions({ plan_id, from, to, limit = 10, skip = 0 }) {
         return await this.client.subscriptions.all({ plan_id, from: new Date(from).getTime() / 1000, to: new Date(to).getTime() / 1000, count: limit, skip });
     }
-    static async updateSubscription(subscription_id, { plan_id, total_count = 12, quantity = 1, notes = {}, addons = null, offer_id = null }) {
-        return await this.client.subscriptions.update(subscription_id, { plan_id, total_count, quantity, addons, offer_id, notes });
+    static async updateSubscription(subscription_id, { plan_id, schedule_change_at = "now", quantity, notes, offer_id, total_count, customer_notify = 1 } = {}) {
+        const payload = { schedule_change_at, customer_notify };
+        if (plan_id) payload.plan_id = plan_id;
+        if (quantity) payload.quantity = quantity;
+        if (notes) payload.notes = notes;
+        if (offer_id) payload.offer_id = offer_id;
+        if (total_count) payload.total_count = total_count;
+        return await this.client.subscriptions.update(subscription_id, payload);
     }
     static async cancelSubscription(subscription_id) {
         return await this.client.subscriptions.cancel(subscription_id, { cancel_at_cycle_end: true, });

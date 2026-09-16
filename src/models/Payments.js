@@ -4,6 +4,7 @@ const AmountSchema = new Schema({
     currency: { type: String, default: "INR" }
 }, { _id: false });
 const PaymentSchema = new Schema({
+    invoice: { type: Schema.Types.ObjectId, ref: 'Invoices' },
     business: { type: Schema.Types.ObjectId, ref: 'Businesses', required: true },
     subscription: { type: Schema.Types.ObjectId, ref: 'Subscriptions' },
     gateway: String,
@@ -25,7 +26,6 @@ const PaymentSchema = new Schema({
 const InvoiceSchema = new Schema({
     business: { type: Schema.Types.ObjectId, ref: 'Businesses', required: true },
     subscription: { type: Schema.Types.ObjectId, ref: 'Subscriptions' },
-    payment: { type: Schema.Types.ObjectId, ref: 'Payments' },
     gatewayReference: Schema.Types.Mixed, // {  invoiceId: String,   // inv_xxx   orderId: String },
     amount: AmountSchema,
     events: {
