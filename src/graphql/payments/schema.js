@@ -37,6 +37,7 @@ input AmountSchemaInput {
 }
 enum SubscriptionStatusEnum {
     created
+    pending_payment
     authenticated
     active
     pending_downgrade

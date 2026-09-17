@@ -1,5 +1,5 @@
 import { Plan } from "../../models/Plans.js";
-import { Subscription } from "../../models/Subscriptions.js";
+import { CURRENT_SUBSCRIPTION_STATUSES, Subscription } from "../../models/Subscriptions.js";
 import { Payment } from "../../models/Payments.js";
 import graphqlFields from "graphql-fields";
 import { getSelectFields } from '../../utils/graphqlTools.js';
@@ -16,6 +16,8 @@ import {
 import { Business } from "../../models/Business.js";
 import { RazorPayService } from "../../services/razorPayService.js";
 
+
+const PAID_PLAN_TYPES = new Set(["BASE", "ENTERPRISE"]);
 
 const compactInput = (input = {}) => {
     const update = {};
@@ -54,7 +56,7 @@ const scheduleResetCredits = async ({ idempotencyKey, name, body, runAt }) => {
         console.log(`cron job set up for ${name}`, response.data);
     } catch (error) {
         console.error(error);
-        throw GraphQLError(`Failed to set up cron job for ${name}`, { extensions: { code: "INTERNAL_SERVER_ERROR" } });
+        throw new GraphQLError(`Failed to set up cron job for ${name}`, { extensions: { code: "INTERNAL_SERVER_ERROR" } });
     }
 };
 export const paymentResolvers = {
@@ -150,17 +152,25 @@ export const paymentResolvers = {
         },
         async startSubscription(_, { planId }, context, info) {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
-            const { rootFields, populateFields } = getSelectFields(requestedFields.data);
+            const { populateFields } = getSelectFields(requestedFields.subscription || {});
             const plan = await Plan.findById(planId);
-            if (!plan) throw GraphQLError("Plan not found", { extensions: { code: "NOT_FOUND" } });
-            if (plan.type === "TOPUP") throw GraphQLError("Use purchaseTopup for top-up plans", { extensions: { code: "BAD_USER_INPUT" } });
-            // check if free trail is active
-            const business = await Business.findById(context.user.business).select("credits.freeTrailClaimed credits.freeTrailExpiry credits.currentSubscription");
-            await axios.post(`https://socketio.avakado.ai/api/cron/${`free_trail_reset_${business._id}`}/run`)
-            if (business.credits.freeTrailExpiry && business.credits.freeTrailExpiry > new Date()) await Business.findByIdAndUpdate(context.user.business, { $set: { "credits.freeTrailClaimed": true, "credits.freeTrailExpiry": new Date(), "credits.lastUpdated": new Date() } });
+            if (!plan) throw new GraphQLError("Plan not found", { extensions: { code: "NOT_FOUND" } });
+            if (plan.type === "TOPUP") throw new GraphQLError("Use purchaseTopup for top-up plans", { extensions: { code: "BAD_USER_INPUT" } });
+            if (!razorpayPlanId(plan)) throw new GraphQLError("Plan is missing a Razorpay plan id", { extensions: { code: "BAD_USER_INPUT" } });
+            const business = await Business.findById(context.user.business).select("credits");
+            const trialActive = Boolean(business?.credits?.freeTrailExpiry && business.credits.freeTrailExpiry > new Date());
+            if (trialActive) {
+                try {
+                    await axios.post(`https://socketio.avakado.ai/api/cron/free_trail_reset_${business._id}/run`);
+                } catch (error) {
+                    console.error("Free trial reset cron was skipped", error?.response?.status || error.message);
+                }
+            }
+            await Business.findByIdAndUpdate(context.user.business, { $set: { "credits.freeTrailClaimed": true, "credits.freeTrailExpiry": new Date(), "credits.lastUpdated": new Date() } });
             const current = await Subscription.findOne({ business: context.user.business, status: { $in: CURRENT_SUBSCRIPTION_STATUSES } }).populate("plan");
-            if (current && PAID_PLAN_TYPES.has(current.plan?.type) && !["created", "pending_payment"].includes(current.status)) throw GraphQLError("An active paid subscription already exists. Use upgrade or downgrade.", { extensions: { code: "BAD_USER_INPUT" } });
-            if (!razorpayPlanId(plan)) throw GraphQLError("Plan is missing a Razorpay plan id", { extensions: { code: "BAD_USER_INPUT" } });
+            if (current && PAID_PLAN_TYPES.has(current.plan?.type) && !["created", "pending_payment"].includes(current.status)) {
+                throw new GraphQLError("An active paid subscription already exists. Use upgrade or downgrade.", { extensions: { code: "BAD_USER_INPUT" } });
+            }
             if (current) await supersedeCurrent(context.user.business, { reason: `Replaced by ${plan.code}` });
             let subscription, rzpSub;
             try {
@@ -171,12 +181,15 @@ export const paymentResolvers = {
             } catch (error) {
                 console.error(error);
                 if (subscription) await Subscription.findByIdAndDelete(subscription._id);
-                if (rzpSub) await RazorPayService.cancelSubscription(rzpSub.id);
-                throw GraphQLError(error.message, { extensions: { code: "INTERNAL_SERVER_ERROR" } });
+                if (rzpSub?.id) {
+                    try { await RazorPayService.cancelSubscription(rzpSub.id); } catch (cancelError) { console.error(cancelError); }
+                }
+                const razorpayMessage = error?.error?.description || error?.message || "Failed to start subscription";
+                throw new GraphQLError(razorpayMessage, { extensions: { code: "INTERNAL_SERVER_ERROR" } });
             }
             if (populateFields?.plan) await Plan.populate(subscription, { path: "plan", select: populateFields.plan });
             if (populateFields?.pendingChange) await Subscription.populate(subscription, { path: "pendingChange.targetPlan", select: populateFields.pendingChange });
-            return { subscription: subscription, checkout: checkoutSubscription(rzpSub, plan.amount) };
+            return { subscription, checkout: checkoutSubscription(rzpSub, plan.amount) };
         },
         async purchaseTopup(_, { planId }, context, info) {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
