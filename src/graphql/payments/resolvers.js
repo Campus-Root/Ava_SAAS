@@ -114,6 +114,16 @@ export const paymentResolvers = {
             if (!deleted) throw GraphQLError("Plan not found", { extensions: { code: "NOT_FOUND" } });
             return true;
         },
+        async startFreeTrail(_, __, context, info) {
+            const requestedFields = graphqlFields(info, {}, { processArguments: false });
+            const { rootFields, populateFields } = getSelectFields(requestedFields.data);
+            const business = await Business.findById(context.user.business).select("credits.freeTrailClaimed credits.freeTrailExpiry credits.currentSubscription");
+            if (business.credits.freeTrailClaimed) throw GraphQLError("Free trial already claimed", { extensions: { code: "BAD_USER_INPUT" } });
+            if (business.credits.freeTrailExpiry && business.credits.freeTrailExpiry > new Date()) throw GraphQLError("Free trial not expired", { extensions: { code: "BAD_USER_INPUT" } });
+            if (business.credits.currentSubscription) throw GraphQLError("An active subscription already exists. Use upgrade or downgrade.", { extensions: { code: "BAD_USER_INPUT" } });
+            await business.updateOne({ credits: { freeTrailClaimed: true, freeTrailExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) } });
+            return true;
+        },
         async startSubscription(_, { planId }, context, info) {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { rootFields, populateFields } = getSelectFields(requestedFields.data);

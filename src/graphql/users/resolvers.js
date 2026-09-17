@@ -14,6 +14,7 @@ import { flattenFields } from '../../utils/graphqlTools.js';
 import AuthService from '../../services/authService.js';
 import { GraphQLError } from 'graphql';
 import { OpenAiLLM } from '../../utils/openai.js';
+import { Subscription } from '../../models/Subscriptions.js';
 export const userResolvers = {
     Query: {
         me: async (_, filters, context, info) => {

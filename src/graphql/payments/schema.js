@@ -150,6 +150,7 @@ type Mutation {
     createAVAPlan(input: PlanInput!): Plan @requireScope(scope: "super:all")
     updateAVAPlan(id: ID!, input: PlanInput!): Plan @requireScope(scope: "super:all")
     deleteAVAPlan(id: ID!): Boolean @requireScope(scope: "super:all")
+    startFreeTrail: Boolean @requireScope(scope: "subscription:billing") @requireBusinessAccess
     startSubscription(planId: ID!): SubscriptionCheckoutPayload @requireScope(scope: "subscription:billing") @requireBusinessAccess
     # upgradeSubscription(targetPlanCode: String!): SubscriptionCheckoutPayload @requireScope(scope: "subscription:upgrade") @requireBusinessAccess
     # downgradeSubscription(targetPlanCode: String!): Subscription @requireScope(scope: "subscription:downgrade") @requireBusinessAccess
