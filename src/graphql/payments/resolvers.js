@@ -14,7 +14,6 @@ import {
 } from "../../services/subscriptionService.js";
 import { Business } from "../../models/Business.js";
 import { RazorPayService } from "../../services/razorPayService.js";
-import { Chat } from "openai/resources/index.mjs";
 
 
 const compactInput = (input = {}) => {
@@ -35,6 +34,28 @@ const populateAllowedTopUps = async (plans, info) => {
     return plans;
 };
 
+const scheduleResetCredits = async ({ idempotencyKey, name, body, runAt }) => {
+    try {
+        console.log(`seting up cron job for ${name}`);
+        const response = await axios.post("https://socketio.avakado.ai/api/cron", {
+            "id": idempotencyKey,
+            "name": name,
+            "scheduleType": "once",
+            "runAt": runAt,
+            "type": "http",
+            "url": "https://chat.avakado.ai/aux/trigger-reset-credits",
+            "method": "POST",
+            "headers": { "Content-Type": "application/json" },
+            "body": body,
+            "enabled": true,
+            "miscIds": body,
+        })
+        console.log(`cron job set up for ${name}`, response.data);
+    } catch (error) {
+        console.error(error);
+        throw GraphQLError(`Failed to set up cron job for ${name}`, { extensions: { code: "INTERNAL_SERVER_ERROR" } });
+    }
+};
 export const paymentResolvers = {
     Query: {
         async fetchPlans(_, { code, name, type, status, id }, context, info) {
@@ -123,39 +144,7 @@ export const paymentResolvers = {
             if (business.credits.freeTrailExpiry && business.credits.freeTrailExpiry > new Date()) throw GraphQLError("Free trial not expired", { extensions: { code: "BAD_USER_INPUT" } });
             if (business.credits.currentSubscription) throw GraphQLError("An active subscription already exists. Use upgrade or downgrade.", { extensions: { code: "BAD_USER_INPUT" } });
             await business.updateOne({ credits: { freeTrailClaimed: true, active: true, balance: 3000, lastUpdated: new Date(), freeTrailExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) } });
-            try {
-                console.log("seting up cron job for free trail reset");
-                const response = await axios.post("https://socketio.avakado.ai/api/cron", {
-                    "id": `free_trail_reset_${business._id}`,
-                    "name": "Free trail reset",
-                    "scheduleType": "once",
-                    "runAt": business.credits.freeTrailExpiry,
-                    "type": "http",
-                    "url": "https://chat.avakado.ai/aux/trigger-reset-credits",
-                    "method": "POST",
-                    "headers": { "Content-Type": "application/json" },
-                    "body": {
-                        businessId: business._id,
-                        idempotencyKey: `free_trail_reset_${business._id}`,
-                        note: "Free trail reset",
-                        meta: {
-                            businessId: business._id,
-                            freeTrailClaimed: business.credits.freeTrailClaimed,
-                            freeTrailExpiry: business.credits.freeTrailExpiry
-                        }
-                    },
-                    "enabled": true,
-                    "miscIds": {
-                        businessId: business._id,
-                        freeTrailClaimed: business.credits.freeTrailClaimed,
-                        freeTrailExpiry: business.credits.freeTrailExpiry
-                    }
-                })
-                console.log("cron job set up for free trail reset", response.data);
-            } catch (error) {
-                console.error(error);
-                throw GraphQLError("Failed to set up cron job for free trail reset", { extensions: { code: "INTERNAL_SERVER_ERROR" } });
-            }
+            await scheduleResetCredits({ idempotencyKey: `free_trail_reset_${business._id}`, name: "Free trail reset", body: { businessId: business._id, idempotencyKey: `free_trail_reset_${business._id}`, note: "Free trail reset", meta: { businessId: business._id, freeTrailClaimed: business.credits.freeTrailClaimed, freeTrailExpiry: business.credits.freeTrailExpiry } }, runAt: business.credits.freeTrailExpiry });
             return { credits: business.credits };
         },
         async startSubscription(_, { planId }, context, info) {
