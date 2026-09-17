@@ -151,7 +151,7 @@ type BusinessCredits {
 }
 type Query {
     fetchPublicPlans(code: String, name: String, type: PlanTypeEnum, status: PlanStatusEnum, id: ID): [Plan]
-    fetchPlans(code: String, name: String, type: PlanTypeEnum, status: PlanStatusEnum, id: ID): [Plan] @requireScope(scope: "super:all")
+    fetchPlans(code: String, name: String, type: PlanTypeEnum, status: PlanStatusEnum, id: ID): [Plan]
     subscriptionHistory(page: Int, limit: Int, id: ID, planId: ID, status: SubscriptionStatusEnum, startedAt: DateTime, endedAt: DateTime, cancelledAt: DateTime): SubscriptionPagination @requireScope(scope: "subscription:read") @requireBusinessAccess
 }
 

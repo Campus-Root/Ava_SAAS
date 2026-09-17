@@ -38,7 +38,7 @@ const populateAllowedTopUps = async (plans, info) => {
 export const paymentResolvers = {
     Query: {
         async fetchPlans(_, { code, name, type, status, id }, context, info) {
-            const filter = {};
+            const filter = { business: context.user.business };
             if (id) filter._id = id;
             if (code) filter.code = code;
             if (name) filter.name = { $regex: name, $options: "i" };
@@ -164,6 +164,10 @@ export const paymentResolvers = {
             const plan = await Plan.findById(planId);
             if (!plan) throw GraphQLError("Plan not found", { extensions: { code: "NOT_FOUND" } });
             if (plan.type === "TOPUP") throw GraphQLError("Use purchaseTopup for top-up plans", { extensions: { code: "BAD_USER_INPUT" } });
+            // check if free trail is active
+            const business = await Business.findById(context.user.business).select("credits.freeTrailClaimed credits.freeTrailExpiry credits.currentSubscription");
+            await axios.post(`https://socketio.avakado.ai/api/cron/${`free_trail_reset_${business._id}`}/run`)
+            if (business.credits.freeTrailExpiry && business.credits.freeTrailExpiry > new Date()) await Business.findByIdAndUpdate(context.user.business, { $set: { "credits.freeTrailClaimed": true, "credits.freeTrailExpiry": new Date(), "credits.lastUpdated": new Date() } });
             const current = await Subscription.findOne({ business: context.user.business, status: { $in: CURRENT_SUBSCRIPTION_STATUSES } }).populate("plan");
             if (current && PAID_PLAN_TYPES.has(current.plan?.type) && !["created", "pending_payment"].includes(current.status)) throw GraphQLError("An active paid subscription already exists. Use upgrade or downgrade.", { extensions: { code: "BAD_USER_INPUT" } });
             if (!razorpayPlanId(plan)) throw GraphQLError("Plan is missing a Razorpay plan id", { extensions: { code: "BAD_USER_INPUT" } });
