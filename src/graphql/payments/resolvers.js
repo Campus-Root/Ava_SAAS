@@ -58,22 +58,17 @@ export const paymentResolvers = {
             await populateAllowedTopUps(plans, info);
             return plans;
         },
-        async currentSubscription(_, __, context, info) {
+        async subscriptionHistory(_, { page = 1, limit = 10, id, planId, status, startedAt, endedAt, cancelledAt }, context, info) {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { rootFields, populateFields } = getSelectFields(requestedFields.data);
-            const business = await Business.findById(context.user.business).select("credits.currentSubscription");
-            let subscription = null;
-            if (business?.credits?.currentSubscription) subscription = await Subscription.findById(business.credits.currentSubscription);
-            else subscription = await Subscription.findOne({ business: context.user.business });
-            if (!subscription) throw GraphQLError("Subscription not found", { extensions: { code: "NOT_FOUND" } });
-            if (populateFields?.plan) await Plan.populate(subscription, { path: "plan", select: populateFields.plan });
-            if (populateFields?.pendingChange) await Subscription.populate(subscription, { path: "pendingChange.targetPlan", select: populateFields.pendingChange });
-            return subscription;
-        },
-        async subscriptionHistory(_, { page = 1, limit = 10 }, context, info) {
-            const requestedFields = graphqlFields(info, {}, { processArguments: false });
-            const { rootFields, populateFields } = getSelectFields(requestedFields.data);
-            const subscriptions = await Subscription.find({ business: context.user.business }).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit);
+            let filter = { business: context.user.business };
+            if (id) filter._id = id;
+            if (planId) filter.plan = planId;
+            if (status) filter.status = status;
+            if (startedAt) filter.startedAt = { $gte: startedAt };
+            if (endedAt) filter.endedAt = { $lte: endedAt };
+            if (cancelledAt) filter.cancelledAt = { $lte: cancelledAt };
+            const subscriptions = await Subscription.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit);
             if (populateFields?.plan) await Plan.populate(subscriptions, { path: "plan", select: populateFields.plan });
             if (populateFields?.pendingChange) await Subscription.populate(subscriptions, { path: "pendingChange.targetPlan", select: populateFields.pendingChange });
             const totalDocuments = await Subscription.countDocuments({ business: context.user.business });
@@ -86,15 +81,6 @@ export const paymentResolvers = {
                     totalDocuments
                 }
             };
-        },
-        async subscription(_, { id }, context, info) {
-            const requestedFields = graphqlFields(info, {}, { processArguments: false });
-            const { rootFields, populateFields } = getSelectFields(requestedFields.data);
-            const subscription = await Subscription.findOne({ _id: id, business: businessId });
-            if (!subscription) throw GraphQLError("Subscription not found", { extensions: { code: "NOT_FOUND" } });
-            if (populateFields?.plan) await Plan.populate(subscription, { path: "plan", select: populateFields.plan });
-            if (populateFields?.pendingChange) await Subscription.populate(subscription, { path: "pendingChange.targetPlan", select: populateFields.pendingChange });
-            return subscription;
         }
     },
     Mutation: {
@@ -190,7 +176,7 @@ export const paymentResolvers = {
                     credits: String(plan.credits || 0)
                 }
             })
-            
+
             return { payment: payment, checkout: checkoutOrder(rzpOrder, plan.amount) };
         },
         // async upgradeSubscription(_, { targetPlanId }, context) {

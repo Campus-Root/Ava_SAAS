@@ -143,9 +143,7 @@ type PaymentCheckoutPayload {
 type Query {
     fetchPublicPlans(code: String, name: String, type: PlanTypeEnum, status: PlanStatusEnum, id: ID): [Plan]
     fetchPlans(code: String, name: String, type: PlanTypeEnum, status: PlanStatusEnum, id: ID): [Plan] @requireScope(scope: "super:all")
-    currentSubscription: Subscription @requireScope(scope: "subscription:read") @requireBusinessAccess
-    subscriptionHistory(page: Int, limit: Int): SubscriptionPagination @requireScope(scope: "subscription:read") @requireBusinessAccess
-    subscription(id: ID!): Subscription @requireScope(scope: "subscription:read") @requireBusinessAccess
+    subscriptionHistory(page: Int, limit: Int, id: ID, planId: ID, status: SubscriptionStatusEnum, startedAt: DateTime, endedAt: DateTime, cancelledAt: DateTime): SubscriptionPagination @requireScope(scope: "subscription:read") @requireBusinessAccess
 }
 
 type Mutation {

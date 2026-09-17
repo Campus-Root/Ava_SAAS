@@ -14,14 +14,16 @@ const BusinessSchema = new Schema({
         phone: String,
         website: String
     },
-    freeTrailClaimed: { type: Boolean, default: false },
     createdBy: { type: Schema.Types.ObjectId, ref: "Users" },
     // members: [{ type: Schema.Types.ObjectId, ref: "Users" }],
     documents: [{ type: Schema.Types.ObjectId, ref: "document" }],
     credits: {
+        freeTrailClaimed: { type: Boolean, default: false },
+        freeTrailExpiry: { type: Date },
         currentSubscription: { type: Schema.Types.ObjectId, ref: "Subscriptions" },
         active: { type: Boolean, default: true },
         balance: { type: Number, default: 0, min: 0 },
+        carryForward: { type: Number, default: 0, min: 0 },
         lastUpdated: { type: Date, default: new Date() }
     }
 }, {

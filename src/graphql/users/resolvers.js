@@ -20,7 +20,10 @@ export const userResolvers = {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { projection, nested } = flattenFields(requestedFields);
             const user = await User.findById(context.user._id);
-            if (projection.business) await Business.populate(user, { path: 'business' });
+            if (projection.business) {
+                await Business.populate(user, { path: 'business' });
+                await Subscription.populate(user, { path: 'business.credits.currentSubscription' });
+            }
             return user
         },
         users: async (_, { id, limit = 10, role, isVerified }, context, info) => {
