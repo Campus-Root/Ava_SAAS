@@ -114,7 +114,7 @@ enum PlanTypeEnum {
     FREE
     BASE
     TOPUP
-    TEST
+    ENTERPRISE
 }
 enum PlanStatusEnum {
     active
