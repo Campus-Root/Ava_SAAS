@@ -15,7 +15,7 @@ const SubscriptionSchema = new Schema({
     plan: { type: Schema.Types.ObjectId, ref: 'Plans', required: true },
     planCode: { type: String, required: true, index: true },
     gateway: { type: String, enum: ['razorpay', 'none'], default: 'razorpay' },
-    gatewaySubscriptionId: { type: String, index: true, sparse: true },
+    gatewaySubscriptionId: { type: String },
     status: { type: String, enum: SUBSCRIPTION_STATUS, default: 'created', index: true },
     amount: AmountSchema,
     creditsPerCycle: { type: Number, default: 0 },
