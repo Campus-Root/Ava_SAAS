@@ -1,37 +1,7 @@
 import { model, Schema } from "mongoose";
 
-// const UsageLogSchema = new Schema({
-//     business: { type: Schema.Types.ObjectId, ref: "Businesses", index: true, required: true },
-//     references: {
-//         type: { type: String, enum: ["Message", "CallSession"] },
-//         id: { type: Schema.Types.ObjectId, refPath: "references.type" },
-//     },
-//     model: {
-//         name: String,
-//         provider: String,
-//         tokenDollarRate: Number,
-//     },
-//     event: {
-//         type: { type: String, enum: ["update", "final"], default: "final" },
-//         // Realtime-only transport; omit for turn-based chat
-//         meduim: { type: String, enum: ["media-stream", "webrtc"] },
-//         seq: { type: Number, default: 1 },
-//     },
-//     usage: { type: Schema.Types.Mixed, default: {} },
-//     cost: {
-//         total: { type: Number, default: 0 },
-//         delta: { type: Number, default: 0 },
-//         currency: { type: String, default: "USD" },
-//         breakdown: Schema.Types.Mixed,
-//         meta: Schema.Types.Mixed,
-//         warnings: [String],
-//         error: String,
-//     },
-// }, {
-//     timestamps: true,
-// });
-
-export const LEDGER_DIRECTIONS = ["credit", "debit"];
+// `UsageLogs` is the credit ledger only. Token/voice cost rows live in `CallUsageLogs` (AvaPhone).
+export const LEDGER_DIRECTIONS = ["credit", "debit", "reset"];
 export const LEDGER_STATUSES = ["posted", "pending", "failed", "reversed"];
 
 const UsageLogSchema = new Schema({
@@ -41,7 +11,7 @@ const UsageLogSchema = new Schema({
     status: { type: String, enum: LEDGER_STATUSES, default: "posted" },
     payment: { type: Schema.Types.ObjectId, ref: "Payments" },
     source: {
-        type: { type: String, enum: ["Message", "CallSession", "Subscription", "Collection"] },
+        type: { type: String, enum: ["Message", "CallSession", "Subscription", "Payment", "Collection"] },
         id: { type: Schema.Types.ObjectId, refPath: "source.type" },
     },
     idempotencyKey: { type: String },
