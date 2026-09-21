@@ -4,8 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node -r dotenv/config src/index.js",
-    "dev": "nodemon src/index.js",
-    "test": "node --test src/services/*.test.js"
+    "dev": "nodemon src/index.js"
   },
   "type": "module",
   "keywords": [],
@@ -15,7 +14,7 @@
   "dependencies": {
     "@apollo/server": "^5.0.0",
     "@as-integrations/express5": "^1.1.2",
-    "@avakado.ai/schemas": "^1.1.0",
+    "@avakado.ai/schemas": "^1.1.1",
     "@aws-sdk/client-s3": "^3.1010.0",
     "@aws-sdk/s3-request-presigner": "^3.1010.0",
     "@danielxceron/youtube-transcript": "^1.2.3",
@@ -32,7 +31,6 @@
     "axios": "^1.8.1",
     "bcryptjs": "^3.0.0",
     "body-parser": "^2.2.0",
-    "bull": "^4.16.5",
     "cheerio": "^1.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

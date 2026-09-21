@@ -1,7 +1,5 @@
 import Razorpay from "razorpay";
-// import crypto from 'node:crypto';
 import "dotenv/config";
-import { createHmac } from 'node:crypto';
 export class RazorPayService {
     static client = new Razorpay({
         key_id: process.env.RAZORPAY_KEY_ID,
@@ -16,19 +14,6 @@ export class RazorPayService {
         return process.env.RAZORPAY_KEY_ID;
     }
 
-    static async verifyPayment(order_id, payment_id, signature) {
-        try {
-            const body = order_id + "|" + payment_id;
-            const expectedSignature = createHmac("sha256", process.env.RAZORPAY_KEY_SECRET).update(body.toString()).digest("hex");
-            if (expectedSignature !== signature) throw new Error("Invalid signature");
-            const order = await this.fetchOrderById(order_id);
-            if (!order) throw new Error("Order not found");
-            return order.status === "paid"
-        } catch (error) {
-            console.error(error);
-            return false;
-        }
-    }
     static async fetchPayment(payment_id) {
         return await this.client.payments.fetch(payment_id);
     }

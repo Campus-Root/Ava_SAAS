@@ -88,3 +88,11 @@ export const buildUrlWithParams = (baseUrl, params) => {
     ).toString();
     return paramsString ? `${baseUrl}?${paramsString}` : baseUrl;
 };
+
+export function exotelMediaStreamUrl({ callSessionId, model, sampleRate, host = 'phone.avakado.ai' } = {}) {
+    return buildUrlWithParams(`wss://${host}/media-stream`, {
+        callSessionId,
+        model,
+        'sample-rate': sampleRate,
+    });
+}

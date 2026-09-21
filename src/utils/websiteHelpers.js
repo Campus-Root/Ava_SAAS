@@ -5,7 +5,6 @@ import "dotenv/config";
 // import pLimit from "p-limit";
 import { SitemapLoader } from "@langchain/community/document_loaders/web/sitemap";
 import { Collection } from '@avakado.ai/schemas';
-// import { urlProcessingQueue } from "./bull.js";
 export const sitemapGenerator = async (mainUrl) => {
   try {
     // Attempt to fetch robots.txt

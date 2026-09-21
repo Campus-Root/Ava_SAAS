@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { sendMail } from '../utils/sendEmail.js';
 import { Ticket } from '@avakado.ai/schemas';
 import { AgentModel } from '@avakado.ai/schemas';
-import { buildUrlWithParams, getCallSessionForIncomingCall, getCallSessionForOutboundDial } from '../utils/CallSessions.js';
+import { exotelMediaStreamUrl, getCallSessionForIncomingCall, getCallSessionForOutboundDial } from '../utils/CallSessions.js';
+import { contactUsValidation } from '../services/contactUs.js';
 import { Channel } from '@avakado.ai/schemas';
 import { Lead } from '@avakado.ai/schemas';
 import { Conversation } from '@avakado.ai/schemas';
@@ -37,13 +38,16 @@ builtInRoutes.get('/exotel-redirect', async (request, reply) => {
             console.error("❌", "Call session not found");
             return reply.status(404).send('Call session not found');
         }
-        const url = 'phone.avakado.ai'
-        const wssUrl = buildUrlWithParams(`wss://${url}/media-stream`, { callSessionId: callSession._id, model: callSession.callDetails.session.model, "sample-rate": callSession.callDetails.session.sampleRate });
+        const wssUrl = exotelMediaStreamUrl({
+            callSessionId: callSession._id,
+            model: callSession.callDetails.session.model,
+            sampleRate: callSession.callDetails.session.sampleRate,
+        });
         console.log("🚀 ~ builtInRoutes.get ~ wssUrl:", wssUrl)
         return reply.type('application/json').send({ url: wssUrl });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ success: false, error: error.message, message: 'Internal server error' });
+        return reply.status(500).json({ success: false, error: error.message, message: 'Internal server error' });
     }
 
 })
@@ -77,9 +81,9 @@ builtInRoutes.get('/get-agent', async (req, res) => {
 builtInRoutes.post('/contact-us', async (req, res) => {
     try {
         const { name, contactDetails, purpose } = req.body;
-        if (!name || !contactDetails || !purpose) return res.status(400).json({ error: 'Missing required fields' });
+        const check = contactUsValidation({ name, contactDetails, purpose });
+        if (!check.ok) return res.status(check.status).json({ error: check.error });
         const { email, phone } = contactDetails;
-        if (!email && !phone) return res.status(400).json({ error: 'At least one contact detail (email or phone) is required' });
         const subject = `New Contact Request from ${name}`;
         const text = ` New contact form submission:
                 Name: ${name}
