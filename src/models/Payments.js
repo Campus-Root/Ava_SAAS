@@ -4,11 +4,14 @@ const AmountSchema = new Schema({
     currency: { type: String, default: "INR" }
 }, { _id: false });
 const PaymentSchema = new Schema({
-    invoice: { type: Schema.Types.ObjectId, ref: 'Invoices' },
     business: { type: Schema.Types.ObjectId, ref: 'Businesses', required: true },
     subscription: { type: Schema.Types.ObjectId, ref: 'Subscriptions' },
     gateway: String,
     gatewayReference: Schema.Types.Mixed, //{ paymentId: String, orderId: String, invoiceId: String },
+    gatewayPaymentId: { type: String, index: true, sparse: true },
+    gatewayInvoiceId: String, // Razorpay invoice id (inv_xxx) for a subscription cycle; fetch the hosted PDF from Razorpay with it
+    amount: AmountSchema,
+    notes: Schema.Types.Mixed, // { planId, planCode, action, credits }
     events: {
         authorized: Date,
         captured: Date,
@@ -23,22 +26,5 @@ const PaymentSchema = new Schema({
     timestamps: true,
     versionKey: false
 });
-const InvoiceSchema = new Schema({
-    business: { type: Schema.Types.ObjectId, ref: 'Businesses', required: true },
-    subscription: { type: Schema.Types.ObjectId, ref: 'Subscriptions' },
-    gatewayReference: Schema.Types.Mixed, // {  invoiceId: String,   // inv_xxx   orderId: String },
-    amount: AmountSchema,
-    events: {
-        issuedAt: Date,
-        paidAt: Date,
-        cancelledAt: Date,
-        expiredAt: Date
-    },
-    shortUrl: String,
-}, {
-    timestamps: true,
-    versionKey: false
-});
 
-export const Invoice = model('Invoices', InvoiceSchema, "Invoices");
 export const Payment = model('Payments', PaymentSchema, "Payments");
