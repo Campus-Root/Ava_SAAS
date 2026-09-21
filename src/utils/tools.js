@@ -1,6 +1,5 @@
 import axios from "axios";
 import { Conversation } from "@avakado.ai/schemas";
-import pkg from 'lodash';
 import 'dotenv/config'
 export const populateStructure = (child, dataMap, parentPath = "") => {
     const result = []
@@ -282,7 +281,6 @@ export const buildComponents = (parametersMap, data) => {
             type: path.type,
             parameter_name: path.parameter_name || null,
             [path.type]: evaluateData(path[path.type], data)
-            // path[path.type].startsWith("{{") && path[path.type].endsWith("}}") ? pkg.get(data, path[path.type].slice(2, -2)) : path[path.type]
         }))
     }));
 };
@@ -309,8 +307,13 @@ export const evaluateData = (data, context) => {
         }
     }
 }
-export const evaluateExpression = (expression, context) => {
-    let result = pkg.get(context, expression);
-    console.log(result, "result");
-    return result;
+export const evaluateExpression = (expression, context = {}) => {
+    try {
+        const names = Object.keys(context);
+        const values = Object.values(context);
+        return new Function(...names, `"use strict"; return (${expression});`)(...values);
+    } catch (error) {
+        console.error("Expression error:", expression, error);
+        return undefined;
+    }
 }

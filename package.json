@@ -46,7 +46,6 @@
     "kafkajs": "^2.2.4",
     "langchain": "^0.3.19",
     "libphonenumber-js": "^1.13.10",
-    "loadash": "^1.0.0",
     "luxon": "^3.5.0",
     "mongo-sanitize": "^1.1.0",
     "mongoose": "^8.10.0",
