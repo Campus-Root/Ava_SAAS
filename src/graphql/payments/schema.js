@@ -40,6 +40,7 @@ enum SubscriptionStatusEnum {
     pending_payment
     authenticated
     active
+    pending
     pending_downgrade
     cancel_at_period_end
     paused

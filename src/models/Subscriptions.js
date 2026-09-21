@@ -5,9 +5,9 @@ const AmountSchema = new Schema({
     currency: { type: String, default: "INR" }
 }, { _id: false });
 
-export const SUBSCRIPTION_STATUS = ['created', 'pending_payment', 'authenticated', 'active', 'pending_downgrade', 'cancel_at_period_end', 'paused', 'halted', 'cancelled', 'expired', 'completed'];
+export const SUBSCRIPTION_STATUS = ['created', 'pending_payment', 'authenticated', 'active', 'pending', 'pending_downgrade', 'cancel_at_period_end', 'paused', 'halted', 'cancelled', 'expired', 'completed'];
 
-export const CURRENT_SUBSCRIPTION_STATUSES = ['created', 'pending_payment', 'authenticated', 'active', 'pending_downgrade', 'cancel_at_period_end', 'paused', 'halted'];
+export const CURRENT_SUBSCRIPTION_STATUSES = ['created', 'pending_payment', 'authenticated', 'active', 'pending', 'pending_downgrade', 'cancel_at_period_end', 'paused', 'halted'];
 
 const SubscriptionSchema = new Schema({
     business: { type: Schema.Types.ObjectId, ref: 'Businesses', required: true, index: true },
