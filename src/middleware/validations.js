@@ -1,6 +1,6 @@
 
 import { GraphQLError } from "graphql";
-import { LeadTemplate } from "../models/Leads.js";
+import { LeadTemplate } from '@avakado.ai/schemas';
 export const validateLeadDataCore = async (templateId, data) => {
     // Fetch template
     const template = await LeadTemplate.findById(templateId);

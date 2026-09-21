@@ -1,5 +1,5 @@
-import { AgentModel } from "../models/Agent.js";
-import { Channel } from "../models/Channels.js";
+import { AgentModel } from '@avakado.ai/schemas';
+import { Channel } from '@avakado.ai/schemas';
 
 export const getBotDetails = async ({ type, botId }) => {
     try {

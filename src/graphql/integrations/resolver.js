@@ -1,13 +1,13 @@
 import { GraphQLError } from "graphql";
-import { Integration } from "../../models/Integrations.js";
+import { Integration } from '@avakado.ai/schemas';
 import { ZohoCRMIntegration } from "../../utils/Zoho.js";
 import graphqlFields from "graphql-fields";
 import { flattenFields, getSelectFields } from '../../utils/graphqlTools.js';
 import { TwilioService } from "../../utils/twilio.js";
-import { Business } from "../../models/Business.js";
-import { User } from "../../models/User.js";
-import { Channel } from "../../models/Channels.js";
-import { AgentModel } from "../../models/Agent.js";
+import { Business } from "@avakado.ai/schemas";
+import { User } from '@avakado.ai/schemas';
+import { Channel } from '@avakado.ai/schemas';
+import { AgentModel } from '@avakado.ai/schemas';
 import { ExotelService } from "../../utils/exotel.js";
 const { TWILIO_AUTH_TOKEN } = process.env;
 export const IntegrationResolvers = {

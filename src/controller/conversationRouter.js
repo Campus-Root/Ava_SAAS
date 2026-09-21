@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { Conversation } from '../models/Conversations.js';
+import { Conversation } from '@avakado.ai/schemas';
 import { authMiddleware } from '../middleware/auth.js';
-import { Message } from '../models/Messages.js';
-import { CallSession } from '../models/CallSessions.js';
+import { Message } from '@avakado.ai/schemas';
+import { CallSession } from '@avakado.ai/schemas';
 export const conversationRoutes = Router();
 conversationRoutes.get('/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;

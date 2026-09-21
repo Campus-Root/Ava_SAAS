@@ -1,6 +1,6 @@
 import graphqlFields from "graphql-fields";
 import { flattenFields, getSelectFields } from '../../utils/graphqlTools.js';
-import { Notification } from "../../models/notifications.js";
+import { Notification } from '@avakado.ai/schemas';
 export const notificationResolvers = {
     Query: {
         async fetchNotifications(_, __, context, info) {

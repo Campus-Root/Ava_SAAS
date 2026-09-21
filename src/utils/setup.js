@@ -9,7 +9,7 @@ import OauthTelegram from "../services/ExternalAuthenticationServices/telegram.j
 import OauthTwilio from "../services/ExternalAuthenticationServices/twilio.js";
 import OauthWhatsApp from "../services/ExternalAuthenticationServices/whatsapp.js";
 import OauthAvakado from "../services/ExternalAuthenticationServices/avakado.js";
-import { Channel } from "../models/Channels.js";
+import { Channel } from '@avakado.ai/schemas';
 import { parsePhoneNumber } from 'libphonenumber-js';
 
 

@@ -1,4 +1,4 @@
-import { CURRENT_SUBSCRIPTION_STATUSES, Subscription } from "../models/Subscriptions.js";
+import { CURRENT_SUBSCRIPTION_STATUSES, Subscription } from "@avakado.ai/schemas";
 import { RazorPayService } from "./razorPayService.js";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;

@@ -1,18 +1,18 @@
 import graphqlFields from "graphql-fields";
 import { flattenFields, getSelectFields } from "../../utils/graphqlTools.js";
 import { GraphQLError } from "graphql";
-import { Campaign, Task } from "../../models/Campaign.js";
-import { Business } from "../../models/Business.js";
-import { User } from "../../models/User.js";
-import { Channel } from '../../models/Channels.js';
+import { Campaign, Task } from "@avakado.ai/schemas";
+import { Business } from "@avakado.ai/schemas";
+import { User } from '@avakado.ai/schemas';
+import { Channel } from '@avakado.ai/schemas';
 import { sendKafkaMessage } from "../../utils/kafka.js";
-import { Lead } from "../../models/Leads.js";
+import { Lead } from '@avakado.ai/schemas';
 import { buildComponents } from "../../utils/tools.js";
 import { normalizePhoneNumber } from "../../utils/setup.js";
-import { Message } from "../../models/Messages.js";
-import { Conversation } from "../../models/Conversations.js";
-import { AgentModel } from '../../models/Agent.js';
-import { CallSession } from "../../models/CallSessions.js";
+import { Message } from '@avakado.ai/schemas';
+import { Conversation } from "@avakado.ai/schemas";
+import { AgentModel } from '@avakado.ai/schemas';
+import { CallSession } from '@avakado.ai/schemas';
 export const jobResolvers = {
     Query: {
         fetchCampaigns: async (_, { id, name, channelIds, leadIds, status, limit = 10, page = 1 }, context, info) => {
@@ -308,15 +308,15 @@ export const jobResolvers = {
 
 
 // import graphqlFields from "graphql-fields";
-// import { Job } from "../../models/Job.js";
+// import { Job } from '@avakado.ai/schemas';
 // import { flattenFields, getSelectFields } from "../../utils/graphqlTools.js";
 // import { GraphQLError } from "graphql";
-// import { Campaign } from "../../models/Campaign.js";
-// import { Business } from "../../models/Business.js";
-// import { User } from "../../models/User.js";
-// import { Channel } from '../../models/Channels.js';
-// import { AgentModel } from "../../models/Agent.js";
-// import { Conversation } from "../../models/Conversations.js";
+// import { Campaign } from "@avakado.ai/schemas";
+// import { Business } from "@avakado.ai/schemas";
+// import { User } from '@avakado.ai/schemas';
+// import { Channel } from '@avakado.ai/schemas';
+// import { AgentModel } from '@avakado.ai/schemas';
+// import { Conversation } from "@avakado.ai/schemas";
 // import axios from "axios";
 // import { ExotelService } from "../../utils/exotel.js";
 // import { TwilioService } from "../../utils/twilio.js";

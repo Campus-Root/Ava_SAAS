@@ -1,9 +1,9 @@
-import { Collection } from '../../models/Collection.js';
-import { AgentModel } from '../../models/Agent.js';
-import { User } from '../../models/User.js';
+import { Collection } from '@avakado.ai/schemas';
+import { AgentModel } from '@avakado.ai/schemas';
+import { User } from '@avakado.ai/schemas';
 import graphqlFields from 'graphql-fields';
 import { flattenFields, getSelectFields } from '../../utils/graphqlTools.js';
-import { Business } from '../../models/Business.js';
+import { Business } from '@avakado.ai/schemas';
 import { cloudflareIntegration } from '../../services/cloudflare.js';
 import { llamaParser } from '../../services/llamaparse.js';
 import { firecrawlService } from '../../services/firecrawl.js';

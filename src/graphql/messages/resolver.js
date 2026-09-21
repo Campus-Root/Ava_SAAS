@@ -1,14 +1,14 @@
-import { Message } from "../../models/Messages.js";
-import { CallSession } from "../../models/CallSessions.js";
-import { Conversation } from "../../models/Conversations.js";
-import { Business } from "../../models/Business.js";
-import { Channel } from "../../models/Channels.js";
-import { ApiAuthenticators } from "../../models/apiAuthenticator.js";
+import { Message } from '@avakado.ai/schemas';
+import { CallSession } from '@avakado.ai/schemas';
+import { Conversation } from "@avakado.ai/schemas";
+import { Business } from "@avakado.ai/schemas";
+import { Channel } from '@avakado.ai/schemas';
+import { ApiAuthenticators } from '@avakado.ai/schemas';
 import graphqlFields from "graphql-fields";
 import { getSelectFields } from "../../utils/graphqlTools.js";
 import { GraphQLError } from "graphql";
 import { PROVIDER_MAP } from "../../utils/setup.js";
-import { Providers } from "../../models/ExternalServiceProviders.js";
+import { Providers } from '@avakado.ai/schemas';
 
 // ─── Resolvers ────────────────────────────────────────────────────────────────
 

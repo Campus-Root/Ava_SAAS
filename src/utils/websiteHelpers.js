@@ -4,7 +4,7 @@ import https from "https";
 import "dotenv/config";
 // import pLimit from "p-limit";
 import { SitemapLoader } from "@langchain/community/document_loaders/web/sitemap";
-import { Collection } from '../models/Collection.js';
+import { Collection } from '@avakado.ai/schemas';
 // import { urlProcessingQueue } from "./bull.js";
 export const sitemapGenerator = async (mainUrl) => {
   try {

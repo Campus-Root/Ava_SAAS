@@ -1,9 +1,9 @@
-import { Conversation } from "../../models/Conversations.js";
+import { Conversation } from "@avakado.ai/schemas";
 import { getSelectFields } from "../../utils/graphqlTools.js";
 import graphqlFields from "graphql-fields";
-import { AgentModel } from "../../models/Agent.js";
-import { Channel } from "../../models/Channels.js";
-import { Lead } from "../../models/Leads.js";
+import { AgentModel } from '@avakado.ai/schemas';
+import { Channel } from '@avakado.ai/schemas';
+import { Lead } from '@avakado.ai/schemas';
 import { GraphQLError } from "graphql";
 export const conversationResolvers = {
   Query: {

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
-import { Lead } from '../models/Leads.js';
+import { Lead } from '@avakado.ai/schemas';
 export const leadRoutes = Router();
 leadRoutes.get('/', authMiddleware, async (req, res) => {
     try {

@@ -1,4 +1,4 @@
-// import { Job } from '../models/Job.js';
+// import { Job } from '@avakado.ai/schemas';
 // import 'dotenv/config'
 // import Queue from "bull";
 // import axios from "axios";

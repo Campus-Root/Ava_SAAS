@@ -1,5 +1,5 @@
 
-import { Lead, LeadTemplate } from "../../models/Leads.js";
+import { Lead, LeadTemplate } from '@avakado.ai/schemas';
 import graphqlFields from "graphql-fields";
 import { documentTypes, getSelectFields } from "../../utils/graphqlTools.js";
 import { GraphQLError } from "graphql";
@@ -12,18 +12,18 @@ import {
   classifyBulkCreateRows,
   escapeRegex,
 } from "../../utils/leadDuplicateUtils.js";
-import { Channel } from "../../models/Channels.js";
+import { Channel } from '@avakado.ai/schemas';
 import { sendKafkaMessage } from "../../utils/kafka.js";
-import { Message, MessageSession } from "../../models/Messages.js";
-import { Providers } from "../../models/ExternalServiceProviders.js";
+import { Message, MessageSession } from '@avakado.ai/schemas';
+import { Providers } from '@avakado.ai/schemas';
 import { uploadFileToWhatsApp } from "../../utils/whatsapp-app-bootstrap.js";
-import { Conversation } from "../../models/Conversations.js";
-import { AgentModel } from "../../models/Agent.js";
+import { Conversation } from "@avakado.ai/schemas";
+import { AgentModel } from '@avakado.ai/schemas';
 import { fireAndForgetAxios } from "../../utils/fireAndForget.js";
 import { normalizePhoneNumber } from "../../utils/setup.js";
 import axios from "axios";
 import mongoose from "mongoose";
-import { CallSession } from "../../models/CallSessions.js";
+import { CallSession } from '@avakado.ai/schemas';
 
 export const leadResolvers = {
   Query: {

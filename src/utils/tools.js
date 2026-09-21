@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Conversation } from "../models/Conversations.js";
+import { Conversation } from "@avakado.ai/schemas";
 import pkg from 'lodash';
 import 'dotenv/config'
 export const populateStructure = (child, dataMap, parentPath = "") => {

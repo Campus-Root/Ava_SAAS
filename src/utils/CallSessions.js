@@ -1,9 +1,9 @@
 
 import { parsePhoneNumber } from 'libphonenumber-js';
-import { CallSession } from '../models/CallSessions.js';
-import { Lead } from '../models/Leads.js';
-import { Conversation } from '../models/Conversations.js';
-import { AgentModel } from '../models/Agent.js';
+import { CallSession } from '@avakado.ai/schemas';
+import { Lead } from '@avakado.ai/schemas';
+import { Conversation } from '@avakado.ai/schemas';
+import { AgentModel } from '@avakado.ai/schemas';
 export const normalizePhoneNumber = (rawNumber, defaultCountry = 'IN') => {
     if (!rawNumber) return null;
 

@@ -1,8 +1,8 @@
-import { Action } from "../../models/Action.js";
+import { Action } from '@avakado.ai/schemas';
 import graphqlFields from 'graphql-fields';
 import { flattenFields, getSelectFields } from '../../utils/graphqlTools.js';
-import { AgentModel } from "../../models/Agent.js";
-import { Business } from "../../models/Business.js";
+import { AgentModel } from '@avakado.ai/schemas';
+import { Business } from "@avakado.ai/schemas";
 
 export const actionResolvers = {
     Query: {

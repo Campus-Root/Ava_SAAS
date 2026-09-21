@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { sendMail } from '../utils/sendEmail.js';
-import { Ticket } from '../models/Tickets.js';
-import { AgentModel } from '../models/Agent.js';
+import { Ticket } from '@avakado.ai/schemas';
+import { AgentModel } from '@avakado.ai/schemas';
 import { buildUrlWithParams, getCallSessionForIncomingCall, getCallSessionForOutboundDial } from '../utils/CallSessions.js';
-import { Channel } from '../models/Channels.js';
-import { Lead } from '../models/Leads.js';
-import { Conversation } from '../models/Conversations.js';
+import { Channel } from '@avakado.ai/schemas';
+import { Lead } from '@avakado.ai/schemas';
+import { Conversation } from '@avakado.ai/schemas';
 import { leadRoutes } from './leadsRouter.js';
 import { conversationRoutes } from './conversationRouter.js';
 export const builtInRoutes = Router();

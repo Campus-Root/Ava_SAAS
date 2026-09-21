@@ -1,6 +1,6 @@
 import axios from "axios"
 import crypto from "crypto"
-import { Channel } from "../models/Channels.js";
+import { Channel } from '@avakado.ai/schemas';
 export class InstagramMessagingAPI {
     constructor(config) {
         this.accessToken = config.accessToken;

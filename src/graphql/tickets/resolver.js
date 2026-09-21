@@ -1,7 +1,7 @@
 import graphqlFields from "graphql-fields";
-import { Ticket } from "../../models/Tickets.js";
+import { Ticket } from '@avakado.ai/schemas';
 import { flattenFields, getSelectFields } from '../../utils/graphqlTools.js';
-import { Business } from "../../models/Business.js";
+import { Business } from "@avakado.ai/schemas";
 export const ticketResolvers = {
     Query: {
         async fetchTickets(_, { notifierEmail, channel, priority, status, id }, context, info) {

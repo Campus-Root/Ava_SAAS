@@ -11,11 +11,11 @@ import { registerApollo } from './graphql/index.js';
 import sanitize from 'mongo-sanitize';
 import 'dotenv/config'
 // weighted imports
-import { Message } from "./models/Messages.js";
+import { Message } from '@avakado.ai/schemas';
 import ical, { ICalCalendarMethod } from 'ical-generator';
 import { generateMeetingUrl } from "./utils/tools.js";
 import { DateTime } from "luxon";
-import { Ticket } from "./models/Tickets.js";
+import { Ticket } from '@avakado.ai/schemas';
 import { ensureWhatsAppWebhookSubscription } from './utils/whatsapp-app-bootstrap.js';
 import { builtInRoutes } from './controller/index.js';
 const whitelist = ["https://ava-saas.onrender.com", "https://www.avakado.ai", "https://api-builder-eight.vercel.app", "https://avakado.ai", "http://localhost:5174", "http://localhost:3000", "https://studio.apollographql.com", "https://app.avakado.ai", "https://api-builder-eight.vercel.app/"];

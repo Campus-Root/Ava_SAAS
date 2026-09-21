@@ -1,6 +1,6 @@
 import { GraphQLError } from "graphql";
-import { ApiAuthenticators } from "../../models/apiAuthenticator.js";
-import { Api, Providers } from "../../models/ExternalServiceProviders.js";
+import { ApiAuthenticators } from '@avakado.ai/schemas';
+import { Api, Providers } from '@avakado.ai/schemas';
 import { PROVIDER_MAP } from "../../utils/setup.js";
 import graphqlFields from "graphql-fields";
 import { getSelectFields } from "../../utils/graphqlTools.js";

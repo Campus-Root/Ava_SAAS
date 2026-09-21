@@ -1,6 +1,6 @@
-import { Plan } from "../../models/Plans.js";
-import { CURRENT_SUBSCRIPTION_STATUSES, Subscription } from "../../models/Subscriptions.js";
-import { Payment } from "../../models/Payments.js";
+import { Plan } from '@avakado.ai/schemas';
+import { CURRENT_SUBSCRIPTION_STATUSES, Subscription } from "@avakado.ai/schemas";
+import { Payment } from "@avakado.ai/schemas";
 import graphqlFields from "graphql-fields";
 import { getSelectFields } from '../../utils/graphqlTools.js';
 import { GraphQLError } from "graphql";
@@ -13,7 +13,7 @@ import {
     // resumeSubscription as resumeSubscriptionService,
     // upgradeSubscription as upgradeSubscriptionService
 } from "../../services/subscriptionService.js";
-import { Business } from "../../models/Business.js";
+import { Business } from "@avakado.ai/schemas";
 import { RazorPayService } from "../../services/razorPayService.js";
 
 

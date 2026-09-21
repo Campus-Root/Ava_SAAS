@@ -5,6 +5,7 @@ type CampaignTimeLines {
     startedAt: DateTime
     completedAt: DateTime
     cancelledAt: DateTime
+    lastTaskStartedAt: DateTime
 }
 type Campaign {
     _id: ID!

@@ -1,5 +1,5 @@
-import { User } from '../../models/User.js';
-import { Business } from '../../models/Business.js';
+import { User } from '@avakado.ai/schemas';
+import { Business } from '@avakado.ai/schemas';
 import bcrypt from 'bcryptjs';
 import {
     getAllScopes,
@@ -14,7 +14,7 @@ import { flattenFields } from '../../utils/graphqlTools.js';
 import AuthService from '../../services/authService.js';
 import { GraphQLError } from 'graphql';
 import { OpenAiLLM } from '../../utils/openai.js';
-import { Subscription } from '../../models/Subscriptions.js';
+import { Subscription } from '@avakado.ai/schemas';
 export const userResolvers = {
     Query: {
         me: async (_, filters, context, info) => {

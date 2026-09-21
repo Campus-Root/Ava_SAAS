@@ -1,5 +1,5 @@
-import { NodeModel } from "../../models/InbuiltNodes.js";
-import { Workflow } from "../../models/Workflow.js";
+import { NodeModel } from '@avakado.ai/schemas';
+import { Workflow } from '@avakado.ai/schemas';
 import { validateLoops } from "../../utils/workflowHelpers.js";
 import { GraphQLError } from "graphql";
 

@@ -1,15 +1,15 @@
 import graphqlFields from 'graphql-fields';
 import { flattenFields, getSelectFields } from '../../utils/graphqlTools.js';
-import { Channel } from '../../models/Channels.js';
+import { Channel } from '@avakado.ai/schemas';
 import { verifyTransporter } from '../../utils/sendEmail.js';
 import { Telegraf } from 'telegraf';
 import axios from 'axios';
 import { GraphQLError } from 'graphql';
-import { AgentModel } from '../../models/Agent.js';
-import { Business } from '../../models/Business.js';
-import { User } from '../../models/User.js';
-import { ApiAuthenticators } from "../../models/apiAuthenticator.js";
-import { Providers } from '../../models/ExternalServiceProviders.js';
+import { AgentModel } from '@avakado.ai/schemas';
+import { Business } from '@avakado.ai/schemas';
+import { User } from '@avakado.ai/schemas';
+import { ApiAuthenticators } from '@avakado.ai/schemas';
+import { Providers } from '@avakado.ai/schemas';
 import { PROVIDER_MAP } from '../../utils/setup.js';
 export const channelResolvers = {
     Query: {

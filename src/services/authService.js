@@ -1,13 +1,13 @@
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import 'dotenv/config'
-import { User } from "../models/User.js";
+import { User } from '@avakado.ai/schemas';
 const { ACCESS_SECRET, REFRESH_SECRET } = process.env
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { GraphQLError } from 'graphql';
-import { Log } from "../models/Log.js";
-import { Business } from "../models/Business.js";
+import { Log } from '@avakado.ai/schemas';
+import { Business } from "@avakado.ai/schemas";
 import { fireAndForgetAxios } from "../utils/fireAndForget.js";
 class AuthService {
     generateTokens(userId, expiresIn = '30d') {

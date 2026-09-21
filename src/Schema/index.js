@@ -1,7 +1,7 @@
 // import * as yup from "yup";
 import { string, object, ValidationError, array, mixed, boolean } from "yup"
-import { Business } from "../models/Business.js"
-import { User } from "../models/User.js";
+import { Business } from "@avakado.ai/schemas"
+import { User } from '@avakado.ai/schemas';
 export const collectionSchema = object({
     name: string().required("Name is required"),
     contents: array().of(

@@ -1,7 +1,7 @@
 import axios from "axios";
 import BaseOAuthProvider from "./base.js";
 import AuthService from "../authService.js";
-import { User } from "../../models/User.js";
+import { User } from '@avakado.ai/schemas';
 export default class OauthAvakado extends BaseOAuthProvider {
     name = "avakado";
 

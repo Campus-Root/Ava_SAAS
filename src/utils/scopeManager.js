@@ -1,4 +1,4 @@
-import { ScopesEnum, RoleScopes } from '../models/User.js';
+import { ScopesEnum, RoleScopes } from '@avakado.ai/schemas';
 
 /**
  * Scope Management Utility

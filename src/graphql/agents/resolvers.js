@@ -1,16 +1,16 @@
 import graphqlFields from 'graphql-fields';
-import { AgentModel } from '../../models/Agent.js';
-import { Collection } from '../../models/Collection.js';
-import { Action } from '../../models/Action.js';
+import { AgentModel } from '@avakado.ai/schemas';
+import { Collection } from '@avakado.ai/schemas';
+import { Action } from '@avakado.ai/schemas';
 import { flattenFields, getSelectFields } from '../../utils/graphqlTools.js';
 import { openai } from '../../utils/openai.js';
-import { Channel } from '../../models/Channels.js';
-import { Business } from '../../models/Business.js';
-import { User } from '../../models/User.js';
+import { Channel } from '@avakado.ai/schemas';
+import { Business } from '@avakado.ai/schemas';
+import { User } from '@avakado.ai/schemas';
 import axios from 'axios';
 import { GoogleGenAI } from "@google/genai";
-import { Workflow } from '../../models/Workflow.js';
-import { DemonstrationModel } from '../../models/Demonstarations.js';
+import { Workflow } from '@avakado.ai/schemas';
+import { DemonstrationModel } from '@avakado.ai/schemas';
 export const agentResolvers = {
     Query: {
         agents: async (_, { limit = 10, page = 1, isPublic, isFeatured, runtime, provider, id }, context, info) => {
