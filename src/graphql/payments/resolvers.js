@@ -7,17 +7,18 @@ import { GraphQLError } from "graphql";
 import axios from "axios";
 import {
     applyGatewayBilling, checkoutOrder, checkoutSubscription, razorpayPlanId, supersedeCurrent,
-    // cancelSubscription as cancelSubscriptionService,
-    // downgradeSubscription as downgradeSubscriptionService,
-    // pauseSubscription as pauseSubscriptionService,
-    // resumeSubscription as resumeSubscriptionService,
-    // upgradeSubscription as upgradeSubscriptionService
+    cancelSubscription as cancelSubscriptionService,
+    downgradeSubscription as downgradeSubscriptionService,
+    pauseSubscription as pauseSubscriptionService,
+    resumeSubscription as resumeSubscriptionService,
+    upgradeSubscription as upgradeSubscriptionService,
 } from "../../services/subscriptionService.js";
 import { Business } from "@avakado.ai/schemas";
 import { RazorPayService } from "../../services/razorPayService.js";
+import { canClaimFreeTrial, freeTrialGrant, freeTrialResetJob, freeTrialRunUrl, topupAllowed, buildTopupPaymentDoc } from "../../services/billingRules.js";
 
 
-const PAID_PLAN_TYPES = new Set(["BASE", "ENTERPRISE"]);
+import { PAID_PLAN_TYPES } from "../../services/creditsCycle.js";
 
 const compactInput = (input = {}) => {
     const update = {};
@@ -143,12 +144,13 @@ export const paymentResolvers = {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { rootFields, populateFields } = getSelectFields(requestedFields.data);
             const business = await Business.findById(context.user.business).select("credits.freeTrailClaimed credits.freeTrailExpiry credits.currentSubscription");
-            if (business.credits.freeTrailClaimed) throw GraphQLError("Free trial already claimed", { extensions: { code: "BAD_USER_INPUT" } });
-            if (business.credits.freeTrailExpiry && business.credits.freeTrailExpiry > new Date()) throw GraphQLError("Free trial not expired", { extensions: { code: "BAD_USER_INPUT" } });
-            if (business.credits.currentSubscription) throw GraphQLError("An active subscription already exists. Use upgrade or downgrade.", { extensions: { code: "BAD_USER_INPUT" } });
-            const freeTrailExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-            const updated = await Business.findByIdAndUpdate(business._id, { $set: { "credits.freeTrailClaimed": true, "credits.active": true, "credits.balance": 3000, "credits.lastUpdated": new Date(), "credits.freeTrailExpiry": freeTrailExpiry } }, { new: true, select: "credits" });
-            await scheduleResetCredits({ idempotencyKey: `free_trail_reset_${business._id}`, name: "Free trail reset", body: { businessId: business._id, idempotencyKey: `free_trail_reset_${business._id}`, note: "Free trail reset", meta: { businessId: business._id, freeTrailClaimed: true, freeTrailExpiry } }, runAt: freeTrailExpiry });
+            const claim = canClaimFreeTrial(business.credits);
+            if (!claim.ok && claim.reason === "already_claimed") throw new GraphQLError("Free trial already claimed", { extensions: { code: "BAD_USER_INPUT" } });
+            if (!claim.ok && claim.reason === "not_expired") throw new GraphQLError("Free trial not expired", { extensions: { code: "BAD_USER_INPUT" } });
+            if (!claim.ok && claim.reason === "has_subscription") throw new GraphQLError("An active subscription already exists. Use upgrade or downgrade.", { extensions: { code: "BAD_USER_INPUT" } });
+            const trial = freeTrialGrant();
+            const updated = await Business.findByIdAndUpdate(business._id, { $set: { "credits.freeTrailClaimed": trial.freeTrailClaimed, "credits.active": trial.active, "credits.balance": trial.balance, "credits.lastUpdated": new Date(), "credits.freeTrailExpiry": trial.freeTrailExpiry } }, { new: true, select: "credits" });
+            await scheduleResetCredits(freeTrialResetJob(business._id, trial.freeTrailExpiry));
             return updated.credits;
         },
         async startSubscription(_, { planId }, context, info) {
@@ -162,7 +164,7 @@ export const paymentResolvers = {
             const trialActive = Boolean(business?.credits?.freeTrailExpiry && business.credits.freeTrailExpiry > new Date());
             if (trialActive) {
                 try {
-                    await axios.post(`https://socketio.avakado.ai/api/cron/free_trail_reset_${business._id}/run`);
+                    await axios.post(freeTrialRunUrl(business._id));
                 } catch (error) {
                     console.error("Free trial reset cron was skipped", error?.response?.status || error.message);
                 }
@@ -192,60 +194,54 @@ export const paymentResolvers = {
             if (populateFields?.pendingChange) await Subscription.populate(subscription, { path: "pendingChange.targetPlan", select: populateFields.pendingChange });
             return { subscription, checkout: checkoutSubscription(rzpSub, plan.amount) };
         },
-        async purchaseTopup(_, { planId }, context, info) {
-            const requestedFields = graphqlFields(info, {}, { processArguments: false });
-            const { rootFields, populateFields } = getSelectFields(requestedFields.data);
+        async purchaseTopup(_, { planId }, context) {
             const plan = await Plan.findById(planId);
-            if (!plan) throw GraphQLError("Plan not found", { extensions: { code: "NOT_FOUND" } });
-            if (plan.type !== "TOPUP") throw GraphQLError("Plan is not a top-up", { extensions: { code: "BAD_USER_INPUT" } });
-            const { currentSubscription } = await Business.findById(context.user.business).select("credits.currentSubscription");
-            await Plan.populate(currentSubscription.plan);
-            if (!currentSubscription.plan.allowedTopUps.includes(planId)) throw GraphQLError("Plan is not allowed for this subscription", { extensions: { code: "BAD_USER_INPUT" } });
-            const receiptId = `tp${user.business.toString().slice(-8)}${Date.now().toString().slice(-8)}`;
+            if (!plan) throw new GraphQLError("Plan not found", { extensions: { code: "NOT_FOUND" } });
+            const business = await Business.findById(context.user.business).select("credits.currentSubscription");
+            const currentSubscription = await Subscription.findById(business?.credits?.currentSubscription).populate("plan");
+            const allowed = topupAllowed(plan, currentSubscription, planId);
+            if (!allowed.ok && allowed.reason === "not_topup") throw new GraphQLError("Plan is not a top-up", { extensions: { code: "BAD_USER_INPUT" } });
+            if (!allowed.ok && allowed.reason === "no_subscription") throw new GraphQLError("An active subscription is required to buy a top-up", { extensions: { code: "BAD_USER_INPUT" } });
+            if (!allowed.ok && allowed.reason === "not_active") throw new GraphQLError("Top-ups are only available on an active paid month", { extensions: { code: "BAD_USER_INPUT" } });
+            if (!allowed.ok && allowed.reason === "period_ended") throw new GraphQLError("This billing month has ended. Top-ups expire with the month", { extensions: { code: "BAD_USER_INPUT" } });
+            if (!allowed.ok) throw new GraphQLError("Plan is not allowed for this subscription", { extensions: { code: "BAD_USER_INPUT" } });
+            const receiptId = `tp${context.user.business.toString().slice(-8)}${Date.now().toString().slice(-8)}`;
             const rzpOrder = await RazorPayService.createOrder({
                 amount: plan.amount.value,
                 currency: plan.amount.currency || "INR",
                 receiptId,
                 notes: {
-                    businessId: user.business.toString(),
+                    businessId: context.user.business.toString(),
                     planId: plan._id.toString(),
                     planCode: plan.code,
-                    subscriptionId: current._id.toString(),
+                    subscriptionId: currentSubscription._id.toString(),
                     action: "topup",
                     credits: String(plan.credits || 0)
                 }
             });
-            const payment = await Payment.create({
-                business: user.business,
-                subscription: currentSubscription._id,
-                gateway: "razorpay",
-                gatewayReference: { orderId: rzpOrder.id, action: "topup", planId: plan._id.toString() },
-                status: "authorized",
-                notes: {
-                    planId: plan._id.toString(),
-                    planCode: plan.code,
-                    action: "topup",
-                    credits: String(plan.credits || 0)
-                }
-            })
+            const payment = await Payment.create(buildTopupPaymentDoc({
+                businessId: context.user.business,
+                plan,
+                currentSubscription,
+                rzpOrder,
+            }));
 
-            return { payment: payment, checkout: checkoutOrder(rzpOrder, plan.amount) };
+            return { payment, checkout: checkoutOrder(rzpOrder, plan.amount.value, plan.amount.currency) };
         },
-        // async upgradeSubscription(_, { targetPlanId }, context) {
-        //     // return upgradeSubscriptionService({ targetPlanCode, user: context.user });
-        // },
-        // async downgradeSubscription(_, { targetPlanCode }, context) {
-        //     // return downgradeSubscriptionService({ targetPlanCode, user: context.user });
-        // },
-        // async cancelSubscription(_, __, context) {
-        //     // return cancelSubscriptionService({ user: context.user });
-        // },
-        // async pauseSubscription(_, __, context) {
-        //     // return pauseSubscriptionService({ user: context.user });
-        // },
-        // async resumeSubscription(_, __, context) {
-        //     // return resumeSubscriptionService({ user: context.user });
-        // },
-
+        async upgradeSubscription(_, { targetPlanCode }, context) {
+            return upgradeSubscriptionService({ targetPlanCode, user: context.user });
+        },
+        async downgradeSubscription(_, { targetPlanCode }, context) {
+            return downgradeSubscriptionService({ targetPlanCode, user: context.user });
+        },
+        async cancelSubscription(_, __, context) {
+            return cancelSubscriptionService({ user: context.user });
+        },
+        async pauseSubscription(_, __, context) {
+            return pauseSubscriptionService({ user: context.user });
+        },
+        async resumeSubscription(_, __, context) {
+            return resumeSubscriptionService({ user: context.user });
+        },
     }
 };

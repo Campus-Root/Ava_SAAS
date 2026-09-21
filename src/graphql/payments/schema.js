@@ -163,11 +163,11 @@ type Mutation {
     deleteAVAPlan(id: ID!): Boolean @requireScope(scope: "super:all")
     startFreeTrail: BusinessCredits @requireScope(scope: "subscription:billing") @requireBusinessAccess
     startSubscription(planId: ID!): SubscriptionCheckoutPayload @requireScope(scope: "subscription:billing") @requireBusinessAccess
-    # upgradeSubscription(targetPlanCode: String!): SubscriptionCheckoutPayload @requireScope(scope: "subscription:upgrade") @requireBusinessAccess
-    # downgradeSubscription(targetPlanCode: String!): Subscription @requireScope(scope: "subscription:downgrade") @requireBusinessAccess
-    # cancelSubscription: Subscription @requireScope(scope: "subscription:cancel") @requireBusinessAccess
-    # pauseSubscription: Subscription @requireScope(scope: "subscription:billing") @requireBusinessAccess
-    # resumeSubscription: Subscription @requireScope(scope: "subscription:billing") @requireBusinessAccess
+    upgradeSubscription(targetPlanCode: String!): SubscriptionCheckoutPayload @requireScope(scope: "subscription:upgrade") @requireBusinessAccess
+    downgradeSubscription(targetPlanCode: String!): Subscription @requireScope(scope: "subscription:downgrade") @requireBusinessAccess
+    cancelSubscription: Subscription @requireScope(scope: "subscription:cancel") @requireBusinessAccess
+    pauseSubscription: Subscription @requireScope(scope: "subscription:billing") @requireBusinessAccess
+    resumeSubscription: Subscription @requireScope(scope: "subscription:billing") @requireBusinessAccess
     purchaseTopup(planId: ID!): PaymentCheckoutPayload @requireScope(scope: "subscription:billing") @requireBusinessAccess
 }
 `;
