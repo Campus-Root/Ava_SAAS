@@ -1,6 +1,5 @@
 import { model, Schema } from "mongoose";
 
-// `UsageLogs` is the credit ledger only. Token/voice cost rows live in `CallUsageLogs` (AvaPhone).
 export const LEDGER_DIRECTIONS = ["credit", "debit", "reset"];
 export const LEDGER_STATUSES = ["posted", "pending", "failed", "reversed"];
 
