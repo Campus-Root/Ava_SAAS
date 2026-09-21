@@ -8,6 +8,7 @@ const ConversationSchema = new Schema({
     business: { type: Schema.Types.ObjectId, ref: 'Businesses' },
     channel: { type: Schema.Types.ObjectId, ref: "Channel" },
     lead: { type: Schema.Types.ObjectId, ref: "Lead" }, // from sender of the inbound message / call or recipient of the outbound message / call
+    campaign: { type: Schema.Types.ObjectId, ref: "Campaign" }, // participant of the campaign(bulk messaging)
     // Deterministic provider thread key used to find-or-create on every inbound
     // event. e.g. WhatsApp: contact wa_id · Telegram: chat.id · Messenger: PSID.
     externalConversationId: { type: String },
@@ -25,12 +26,11 @@ const ConversationSchema = new Schema({
         tags: [String],
         // more settings to be added here
     },
-    status: { type: String, enum: ["open", "pending", "snoozed", "closed", "archived", "spam"], default: "open" },
+    status: { type: String, enum: ["open", "pending", "snoozed", "completed", "closed", "archived", "spam"], default: "open" },
     priority: { type: String, enum: ["low", "normal", "high", "urgent"], default: "normal" },
     metadata: {
         openai: { "lastResponseId": String, "lastResponseAt": Date },
         extractedData: Schema.Types.Mixed,
-        // sockets: { socketId: String, disconnectReason: String, },
         userLocation: Schema.Types.Mixed,
         CreditsUsage: {
             conversationCredits: { type: Number, default: 0 },
