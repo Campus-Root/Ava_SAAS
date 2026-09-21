@@ -146,9 +146,10 @@ export const paymentResolvers = {
             if (business.credits.freeTrailClaimed) throw GraphQLError("Free trial already claimed", { extensions: { code: "BAD_USER_INPUT" } });
             if (business.credits.freeTrailExpiry && business.credits.freeTrailExpiry > new Date()) throw GraphQLError("Free trial not expired", { extensions: { code: "BAD_USER_INPUT" } });
             if (business.credits.currentSubscription) throw GraphQLError("An active subscription already exists. Use upgrade or downgrade.", { extensions: { code: "BAD_USER_INPUT" } });
-            await business.updateOne({ credits: { freeTrailClaimed: true, active: true, balance: 3000, lastUpdated: new Date(), freeTrailExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) } });
-            await scheduleResetCredits({ idempotencyKey: `free_trail_reset_${business._id}`, name: "Free trail reset", body: { businessId: business._id, idempotencyKey: `free_trail_reset_${business._id}`, note: "Free trail reset", meta: { businessId: business._id, freeTrailClaimed: business.credits.freeTrailClaimed, freeTrailExpiry: business.credits.freeTrailExpiry } }, runAt: business.credits.freeTrailExpiry });
-            return { credits: business.credits };
+            const freeTrailExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            const updated = await Business.findByIdAndUpdate(business._id, { $set: { "credits.freeTrailClaimed": true, "credits.active": true, "credits.balance": 3000, "credits.lastUpdated": new Date(), "credits.freeTrailExpiry": freeTrailExpiry } }, { new: true, select: "credits" });
+            await scheduleResetCredits({ idempotencyKey: `free_trail_reset_${business._id}`, name: "Free trail reset", body: { businessId: business._id, idempotencyKey: `free_trail_reset_${business._id}`, note: "Free trail reset", meta: { businessId: business._id, freeTrailClaimed: true, freeTrailExpiry } }, runAt: freeTrailExpiry });
+            return updated.credits;
         },
         async startSubscription(_, { planId }, context, info) {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
