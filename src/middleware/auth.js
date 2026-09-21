@@ -1,4 +1,5 @@
 import AuthService from "../services/authService.js";
+import { setRefreshCookie } from "../utils/authCookies.js";
 export const authMiddleware = async (req, res, next) => {
     if (!req.headers.authorization) return res.status(401).json({ success: false, message: 'Access Token Missing', data: null });
     const token = req.headers.authorization.split(" ")[1];
@@ -10,7 +11,7 @@ export const authMiddleware = async (req, res, next) => {
     const { data: user } = await AuthService.verifyDecodedToken(decoded);
     req.user = user;
     if (accessToken && refreshToken) {
-        res.cookie("AVA_RT", refreshToken, { secure: true, httpOnly: true, sameSite: "None", domain: ".avakado.ai", maxAge: 30 * 24 * 60 * 60 * 1000 })
+        setRefreshCookie(res, refreshToken, { maxAge: 30 * 24 * 60 * 60 * 1000 });
         req.AccessToken = accessToken;
     }
     return next();
@@ -260,7 +261,7 @@ export const authForGraphQL = async (req, res) => {
         if (!success) throw new Error(`Token Verification Failed: ${message}`);
         const { data: user } = await AuthService.verifyDecodedToken(decoded);
         // Set refresh token in cookie if provided
-        if (accessToken && refreshToken) res.cookie("AVA_RT", refreshToken, { secure: true, httpOnly: true, sameSite: "None", domain: ".avakado.ai", maxAge: 30 * 24 * 60 * 60 * 1000 });
+        if (accessToken && refreshToken) setRefreshCookie(res, refreshToken, { maxAge: 30 * 24 * 60 * 60 * 1000 });
         return { req, res, user, isAuthenticated: true, accessToken };
     } catch (error) {
         console.error(error);

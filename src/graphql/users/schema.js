@@ -136,6 +136,18 @@ export const userTypeDefs = `#graphql
     """Register"""
     register(input: BusinessRegistrationInput!): JSON
 
+    """Clear the refresh cookie. Access tokens expire on their own."""
+    logout: Boolean
+
+    """Send a one-time reset link if the email belongs to a verified user."""
+    requestPasswordReset(email: String!): JSON
+
+    """Alias of requestPasswordReset"""
+    forgotPassword(email: String!): JSON
+
+    """Consume the reset link and set a new password."""
+    resetPassword(token: String!, email: String!, password: String!): JSON
+
 
   #   # Verify user email
   #   verifyUser(userId: ID!): User @requireScope(scope: "admin:users") @requireResourceOwnership(model: "User", idField: "userId")

@@ -183,6 +183,11 @@ export const registerApollo = async (app, httpServer) => {
     'Register',
     'register',
     'forgotPassword',
+    'ForgotPassword',
+    'requestPasswordReset',
+    'RequestPasswordReset',
+    'resetPassword',
+    'ResetPassword',
     'ephemeralToken',
     'EphemeralToken',
     'startDemo',
@@ -250,7 +255,7 @@ export const registerApollo = async (app, httpServer) => {
         const operationName = extractOperationName(req);
         if (operationName && publicOperations.includes(operationName)) {
           console.log(`Allowing public operation: ${operationName}`);
-          return { user: null, isAuthenticated: false, isPublicOperation: true };
+          return { req, res, user: null, isAuthenticated: false, isPublicOperation: true };
         }
         const authResult = await authForGraphQL(req, res);
         return authResult;

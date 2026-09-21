@@ -12,6 +12,7 @@ import {
 import graphqlFields from 'graphql-fields';
 import { flattenFields } from '../../utils/graphqlTools.js';
 import AuthService from '../../services/authService.js';
+import { setRefreshCookie } from '../../utils/authCookies.js';
 import { GraphQLError } from 'graphql';
 import { OpenAiLLM } from '../../utils/openai.js';
 import { Subscription } from '@avakado.ai/schemas';
@@ -70,7 +71,7 @@ export const userResolvers = {
             const ipAddress = context.req?.ip || context.req?.connection?.remoteAddress;
             const userAgent = context.req?.get('user-agent');
             const { accessToken, refreshToken, user } = await AuthService.login(email, password, ipAddress, userAgent)
-            if (context.res) context.res.cookie("AVA_RT", refreshToken, { secure: true, httpOnly: true, sameSite: "None", domain: ".avakado.ai", expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365) });
+            setRefreshCookie(context.res, refreshToken, { expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365) });
             return { accessToken, role: user.role, scopes: user.scopes || [], user };
         },
         register: async (_, { input }, context) => {
@@ -82,6 +83,13 @@ export const userResolvers = {
                 throw new GraphQLError(error.message || "Registration failed", { extensions: { code: error.extensions?.code || "INTERNAL_SERVER_ERROR" } });
             }
         },
+        logout: async (_, __, context) => {
+            if (!context.user) throw new GraphQLError('Authentication required', { extensions: { code: 'UNAUTHENTICATED' } });
+            return AuthService.logout(context.res);
+        },
+        requestPasswordReset: async (_, { email }) => AuthService.requestPasswordReset(email),
+        forgotPassword: async (_, { email }) => AuthService.requestPasswordReset(email),
+        resetPassword: async (_, { token, email, password }) => AuthService.resetPassword({ token, email, password }),
 
         talkToAi: async (_, { systemInstructions, userQuery, model = "gpt-4o-mini", zodFormat }, context) => {
             const response = await OpenAiLLM({

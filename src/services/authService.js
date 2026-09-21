@@ -9,6 +9,8 @@ import { GraphQLError } from 'graphql';
 import { Log } from '@avakado.ai/schemas';
 import { Business } from "@avakado.ai/schemas";
 import { fireAndForgetAxios } from "../utils/fireAndForget.js";
+import { clearRefreshCookie } from "../utils/authCookies.js";
+import { requestPasswordReset as issuePasswordReset, resetPassword as consumePasswordReset } from "./passwordReset.js";
 class AuthService {
     generateTokens(userId, expiresIn = '30d') {
         const newAccessToken = jwt.sign({ id: userId }, ACCESS_SECRET, { expiresIn: expiresIn });
@@ -144,9 +146,17 @@ class AuthService {
 
 
     refreshAccessToken(user) { }
-    logout(user) { }
-    requestPasswordReset(user) { }
-    resetPassword(user) { }
+    logout(res) {
+        clearRefreshCookie(res);
+        return true;
+    }
+    requestPasswordReset(email) {
+        return issuePasswordReset(User, email);
+    }
+    resetPassword({ token, email, password }) {
+        return consumePasswordReset(User, { token, email, password });
+    }
+    // Email verify is Chat GET /aux/verification — not a SaaS mutation.
     verifyEmail(user) { }
     verifyPhone(user) { }
     verifyOTP(user) { }
