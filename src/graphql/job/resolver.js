@@ -13,6 +13,7 @@ import { Message } from '@avakado.ai/schemas';
 import { Conversation } from "@avakado.ai/schemas";
 import { AgentModel } from '@avakado.ai/schemas';
 import { CallSession } from '@avakado.ai/schemas';
+import { campaignCronJobSpec } from "../../services/campaignEvents.js";
 export const jobResolvers = {
     Query: {
         fetchCampaigns: async (_, { id, name, channelIds, leadIds, status, limit = 10, page = 1 }, context, info) => {
@@ -154,8 +155,8 @@ export const jobResolvers = {
                 case "Whatsapp": {
                     const { template: { templateName, languageCode, parametersMap = [] } } = config;
                     if (!templateName || !languageCode) {
-                        throw new GraphQLError("templateName, languageCode are required");
                         await newCampaign.deleteOne();
+                        throw new GraphQLError("templateName, languageCode are required");
                     }
                     for (const leadId of leadIds) {
                         let lead = await Lead.findById(leadId);
@@ -277,20 +278,7 @@ export const jobResolvers = {
             await sendKafkaMessage({
                 topic: 'cron-job', messages: [{
                     key: "create",
-                    value: JSON.stringify({
-                        id: newCampaign._id,
-                        name: newCampaign.name,
-                        scheduleType: 'once',
-                        runAt: scheduledAt,
-                        type: "http",
-                        url: "https://chat.avakado.ai/aux/trigger/" + newCampaign._id,
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        params: {},
-                        body: {},
-                        enabled: true,
-                        miscIds: {}
-                    })
+                    value: JSON.stringify(campaignCronJobSpec(newCampaign, scheduledAt))
                 }]
             });
             await User.populate(newCampaign, { path: 'createdBy', select: nested.createdBy });

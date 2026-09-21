@@ -3,6 +3,8 @@ import { Conversation } from '@avakado.ai/schemas';
 import { authMiddleware } from '../middleware/auth.js';
 import { Message } from '@avakado.ai/schemas';
 import { CallSession } from '@avakado.ai/schemas';
+import { sendKafkaMessage } from '../utils/kafka.js';
+import { humanHandoffSet, humanHandoffSocketValue } from '../services/conversationEvents.js';
 export const conversationRoutes = Router();
 conversationRoutes.get('/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
@@ -16,21 +18,17 @@ conversationRoutes.patch('/human-handoff/:id', authMiddleware, async (req, res) 
     const { id } = req.params;
     const { business } = req.user;
     const { handoffReason = "Lead explicitly asked for a human agent", handoffUrgency = "normal", assignedTo = "human" } = req.body;
-    const conversation = await Conversation.findByIdAndUpdate(id, {
-        status: 'pending',
-        "config.assignment": {
-            agentReply: false,
-            handoffReason,
-            handoffUrgency,
-            assignedAt: new Date(),
-            assignedTo
-        }
-    }, { new: true });
-    // send an realtime soceket event
-    // await RealtimeServer.notifyRooms("CONVERSATION", this.business.toString(), "conversation.humanHandoff", { conversationId: this.toObject(), config: this.config });
-    // delete and unschedule the scheduled jobs
-    // await prisma.job.deleteMany({ where: { id: { in: [`${this._id.toString()}_followup_1`, `${this._id.toString()}_followup_2`] } } })
-    // unscheduleJob(`${this._id.toString()}_followup_1`);
-    // unscheduleJob(`${this._id.toString()}_followup_2`);
+    const conversation = await Conversation.findOneAndUpdate(
+        { _id: id, business },
+        { $set: humanHandoffSet({ handoffReason, handoffUrgency, assignedTo }) },
+        { new: true }
+    );
+    if (!conversation) return res.status(404).json({ success: false, message: "Conversation not found" });
+    const socket = humanHandoffSocketValue(conversation);
+    await sendKafkaMessage({
+        topic: "socket-event",
+        message: { key: String(conversation._id), value: JSON.stringify(socket) },
+        acks: -1,
+    });
     res.status(200).json(conversation);
 });
