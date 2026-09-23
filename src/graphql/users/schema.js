@@ -64,6 +64,45 @@ export const userTypeDefs = `#graphql
     scopes: [String]!
     """User information"""
     user: User
+    """Access token lifetime in seconds"""
+    expiresIn: Int
+  }
+
+  enum OauthGrantMode {
+    access_refresh
+    access_only
+    permanent
+  }
+
+  type OauthClient {
+    clientId: String!
+    name: String
+    redirectUris: [String!]!
+    allowedOrigins: [String!]!
+    grantMode: OauthGrantMode!
+    secretVersion: Int!
+    revokedAt: DateTime
+    createdAt: DateTime
+    isFirstParty: Boolean
+  }
+
+  type OauthClientSecretPayload {
+    client: OauthClient!
+    clientSecret: String!
+  }
+
+  input CreateOauthClientInput {
+    name: String!
+    redirectUris: [String!]!
+    allowedOrigins: [String!]
+    grantMode: OauthGrantMode!
+  }
+
+  input UpdateOauthClientInput {
+    name: String
+    redirectUris: [String!]
+    allowedOrigins: [String!]
+    grantMode: OauthGrantMode
   }
 
   # input ScopeUpdateInput {
@@ -89,6 +128,9 @@ export const userTypeDefs = `#graphql
 
     """Get all users (admin only)"""
     users( id: ID limit: Int role: UserRole isVerified: Boolean): [User] @requireScope(scope: "admin:users") @requireBusinessAccess
+
+    """The OAuth app for this user, or a business-shared app if they have not created one"""
+    oauthClient: OauthClient
 
 
     # # Get users by business
@@ -136,8 +178,20 @@ export const userTypeDefs = `#graphql
     """Register"""
     register(input: BusinessRegistrationInput!): JSON
 
-    """Clear the refresh cookie. Access tokens expire on their own."""
+    """Clear the refresh cookie and revoke refresh tokens."""
     logout: Boolean
+
+    """Create this user's single OAuth client. Returns the client secret once."""
+    createOauthClient(input: CreateOauthClientInput!): OauthClientSecretPayload
+
+    """Update redirect URIs, origins, name, or grant mode. Does not change the secret."""
+    updateOauthClient(input: UpdateOauthClientInput!): OauthClient
+
+    """Replace the only valid client secret and revoke refresh tokens."""
+    rotateOauthClientSecret: OauthClientSecretPayload
+
+    """Disable this user's OAuth client."""
+    revokeOauthClient: Boolean
 
     """Send a one-time reset link if the email belongs to a verified user."""
     requestPasswordReset(email: String!): JSON

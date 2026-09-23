@@ -1,19 +1,14 @@
 import AuthService from "../services/authService.js";
-import { setRefreshCookie } from "../utils/authCookies.js";
 export const authMiddleware = async (req, res, next) => {
     if (!req.headers.authorization) return res.status(401).json({ success: false, message: 'Access Token Missing', data: null });
     const token = req.headers.authorization.split(" ")[1];
     if (!token || token.trim() === "" || token === 'null' || token === 'undefined') return res.status(401).json({ success: false, message: 'Access Token Missing', data: null });
 
-    const { success, message, data } = AuthService.verifyTokens(token, req.cookies.AVA_RT)
+    const { success, message, data } = await AuthService.verifyTokens(token)
     if (!success) return res.status(401).json({ success, message, data: null });
-    const { decoded, accessToken, refreshToken } = data;
+    const { decoded } = data;
     const { data: user } = await AuthService.verifyDecodedToken(decoded);
     req.user = user;
-    if (accessToken && refreshToken) {
-        setRefreshCookie(res, refreshToken, { maxAge: 30 * 24 * 60 * 60 * 1000 });
-        req.AccessToken = accessToken;
-    }
     return next();
 }
 
@@ -256,13 +251,11 @@ export const authForGraphQL = async (req, res) => {
         if (!authHeader) throw new Error('Access Token Missing');
         const token = authHeader.split(" ")[1];
         if (!token || token.trim() === "" || token === 'null' || token === 'undefined') throw new Error('Access Token Missing');
-        const { success, message, data } = AuthService.verifyTokens(token, req.cookies?.AVA_RT);
-        const { decoded, accessToken, refreshToken } = data;
+        const { success, message, data } = await AuthService.verifyTokens(token);
+        const { decoded } = data;
         if (!success) throw new Error(`Token Verification Failed: ${message}`);
         const { data: user } = await AuthService.verifyDecodedToken(decoded);
-        // Set refresh token in cookie if provided
-        if (accessToken && refreshToken) setRefreshCookie(res, refreshToken, { maxAge: 30 * 24 * 60 * 60 * 1000 });
-        return { req, res, user, isAuthenticated: true, accessToken };
+        return { req, res, user, isAuthenticated: true, accessToken: token };
     } catch (error) {
         console.error(error);
         throw new Error('Internal Server Error');

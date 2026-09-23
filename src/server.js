@@ -18,6 +18,8 @@ import { DateTime } from "luxon";
 import { Ticket } from '@avakado.ai/schemas';
 // import { ensureWhatsAppWebhookSubscription } from './utils/whatsapp-app-bootstrap.js';
 import { builtInRoutes } from './controller/index.js';
+import { oauthCors, oauthRouter } from './controller/oauthRouter.js';
+import { ensureDashboardClient } from './services/oauthService.js';
 const whitelist = ["https://ava-saas.onrender.com", "https://www.avakado.ai", "https://api-builder-eight.vercel.app", "https://avakado.ai", "http://localhost:5174", "http://localhost:3000", "https://studio.apollographql.com", "https://app.avakado.ai", "https://api-builder-eight.vercel.app/"];
 export const corsOptions = {
     origin: (origin, callback) => (!origin || whitelist.indexOf(origin) !== -1) ? callback(null, true) : callback(new Error('Not allowed by CORS')),
@@ -58,6 +60,13 @@ export const createApp = async () => {
         app.use(cookieParser());
         app.use(morgan(':date[web] :method :url :status - :response-time ms'));
         app.use(express.json({ type: ["application/json", "text/plain"], limit: '50mb' }));
+        try {
+            await ensureDashboardClient();
+        } catch (error) {
+            console.error("error seeding dashboard OAuth client", error);
+            throw error;
+        }
+        app.use('/oauth', express.urlencoded({ extended: true }), oauthCors, oauthRouter);
         // Apollo setup
         try {
             await registerApollo(app, server);

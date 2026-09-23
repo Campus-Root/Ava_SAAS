@@ -60,8 +60,8 @@ export default class OauthAvakado extends BaseOAuthProvider {
         try {
             const user = await User.findById(userId);
             if (!user) return this._errorResponse("user_not_found", "User not found.", 400);
-            const { accessToken } = AuthService.generateTokens(user._id, expiry);
-            return this._successResponse({ credentials: { expiry, scope, accessToken } });
+            const tokens = await AuthService.issueAccessForUser(user);
+            return this._successResponse({ credentials: { expiry, scope, accessToken: tokens.access_token } });
         } catch (error) {
             return this._handleError(error);
         }

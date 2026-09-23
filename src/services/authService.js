@@ -2,57 +2,40 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import 'dotenv/config'
 import { User } from '@avakado.ai/schemas';
-const { ACCESS_SECRET, REFRESH_SECRET } = process.env
+const { ACCESS_SECRET } = process.env
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { GraphQLError } from 'graphql';
 import { Log } from '@avakado.ai/schemas';
 import { Business } from "@avakado.ai/schemas";
 import { fireAndForgetAxios } from "../utils/fireAndForget.js";
-import { clearRefreshCookie } from "../utils/authCookies.js";
+import { clearRefreshCookie, clearSsoCookie } from "../utils/authCookies.js";
 import { requestPasswordReset as issuePasswordReset, resetPassword as consumePasswordReset } from "./passwordReset.js";
+import {
+    authenticatePassword,
+    issueDashboardTokens,
+    verifyAccessJwt,
+    revokeRefreshFamily,
+    findActiveClient,
+    clientIdFromUserId,
+    issueTokenSet,
+    ensureDashboardClient,
+} from "./oauthService.js";
+
 class AuthService {
-    generateTokens(userId, expiresIn = '30d') {
-        const newAccessToken = jwt.sign({ id: userId }, ACCESS_SECRET, { expiresIn: expiresIn });
-        const newRefreshToken = jwt.sign({ id: userId }, REFRESH_SECRET, { expiresIn: expiresIn });
-        return { newAccessToken, newRefreshToken };
+    generateTokens(userId, expiresIn = '1h') {
+        const newAccessToken = jwt.sign({ id: userId }, ACCESS_SECRET, { expiresIn });
+        return { newAccessToken };
     }
-    verifyAccessToken(accessToken) {
-        if (!accessToken) return { success: false, message: 'No access token provided', data: { decoded: null } };
-        try {
-            const decoded = jwt.verify(accessToken, ACCESS_SECRET);
-            if (!decoded || !decoded.id) return { success: false, message: 'Invalid access token payload', data: { decoded: null } };
-            return { success: true, message: "Valid Access Token", data: { decoded } };
-        } catch (error) {
-            const message = error.name === 'JsonWebTokenError' ? 'Invalid access token' : error.name === 'TokenExpiredError' ? 'jwt expired' : error.message;
-            return { success: false, message, data: { decoded: null } };
-        }
+    async verifyAccessToken(accessToken) {
+        return verifyAccessJwt(accessToken);
     }
-    verifyRefreshToken(refreshToken) {
-        if (!refreshToken) return { success: false, message: 'No refresh token provided', data: { decoded: null, accessToken: null, refreshToken: null } };
+    async verifyTokens(accessToken) {
         try {
-            const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
-            if (!decoded || !decoded.id) return { success: false, message: 'Invalid refresh token payload', data: { decoded: null, accessToken: null, refreshToken: null } };
-            const { newAccessToken, newRefreshToken } = this.generateTokens(decoded.id, '30d');
-            return { success: true, message: "Valid Refresh Token", data: { decoded, accessToken: newAccessToken, refreshToken: newRefreshToken } };
-        } catch (error) {
-            const message = error.name === 'JsonWebTokenError' ? 'Invalid refresh token' : error.name === 'TokenExpiredError' ? 'jwt expired' : error.message;
-            return { success: false, message, data: { decoded: null, accessToken: null, refreshToken: null } };
-        }
-    }
-    verifyTokens(accessToken, refreshToken) {
-        try {
-            if (accessToken) {
-                const accessResult = this.verifyAccessToken(accessToken);
-                if (accessResult.success) return accessResult;
-                if (accessResult.message === "jwt expired" && refreshToken) return this.verifyRefreshToken(refreshToken);
-                return { success: false, message: accessResult.message || 'Invalid Access Token', data: { decoded: null, accessToken: null, refreshToken: null } };
-            }
-            if (refreshToken) return this.verifyRefreshToken(refreshToken);
-            return { success: false, message: 'No authentication tokens provided', data: { decoded: null, accessToken: null, refreshToken: null } };
+            return await verifyAccessJwt(accessToken);
         } catch (error) {
             console.error('Token verification error:', error);
-            return { success: false, message: 'Error verifying tokens', data: { decoded: null, accessToken: null, refreshToken: null } };
+            return { success: false, message: 'Error verifying tokens', data: { decoded: null } };
         }
     }
     async verifyDecodedToken(decoded) {
@@ -62,15 +45,10 @@ class AuthService {
         return { success: true, message: "Valid Decoded Token", data: user };
     }
     async login(email, password, ipAddress, userAgent) {
-        const user = await User.findOne({ email: email });
-        if (!user || !user._id) throw new GraphQLError('Invalid email', { extensions: { code: 'UNAUTHENTICATED' } });
-        if (!bcrypt.compareSync(password, user.password)) throw new GraphQLError('Invalid password', { extensions: { code: 'UNAUTHENTICATED' } });
-        if (!user.isVerified) throw new GraphQLError('Email not verified', { extensions: { code: 'UNAUTHENTICATED' } });
-        const { newAccessToken, newRefreshToken } = this.generateTokens(user._id, '30d');
-        const userResponse = user.toObject();
-        delete userResponse.password;
+        const { user, userResponse } = await authenticatePassword(email, password);
+        const tokens = await issueDashboardTokens(user);
         await Log.create({ user: user._id, business: user.business, level: 'info', event: 'login', category: 'AUTHENTICATION', status: 'SUCCESS', message: 'Login successful', service: 'auth', meta: { ipAddress, userAgent } });
-        return { accessToken: newAccessToken, refreshToken: newRefreshToken, user: userResponse };
+        return { accessToken: tokens.access_token, refreshToken: tokens.refresh_token, expiresIn: tokens.expires_in, user: userResponse };
     }
 
     async register(user, ipAddress, userAgent) {
@@ -143,20 +121,32 @@ class AuthService {
         });
     }
 
+    async issueAccessForUser(user) {
+        const own = await findActiveClient(clientIdFromUserId(user._id));
+        if (own) return issueTokenSet(user, own);
+        const dashboard = await ensureDashboardClient();
+        return issueTokenSet(user, {
+            clientId: dashboard.clientId,
+            secretVersion: dashboard.secretVersion,
+            grantMode: "access_only",
+        });
+    }
 
-
-    refreshAccessToken(user) { }
-    logout(res) {
+    async logout(res, user) {
+        if (user?._id) await revokeRefreshFamily({ userId: user._id });
         clearRefreshCookie(res);
+        clearSsoCookie(res);
         return true;
     }
     requestPasswordReset(email) {
         return issuePasswordReset(User, email);
     }
-    resetPassword({ token, email, password }) {
-        return consumePasswordReset(User, { token, email, password });
+    async resetPassword({ token, email, password }) {
+        const result = await consumePasswordReset(User, { token, email, password });
+        const user = await User.findOne({ email });
+        if (user) await revokeRefreshFamily({ userId: user._id });
+        return result;
     }
-    // Email verify is Chat GET /aux/verification — not a SaaS mutation.
     verifyEmail(user) { }
     verifyPhone(user) { }
     verifyOTP(user) { }

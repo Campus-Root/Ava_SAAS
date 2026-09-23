@@ -12,10 +12,27 @@ import {
 import graphqlFields from 'graphql-fields';
 import { flattenFields } from '../../utils/graphqlTools.js';
 import AuthService from '../../services/authService.js';
-import { setRefreshCookie } from '../../utils/authCookies.js';
+import { setRefreshCookie, setSsoCookie } from '../../utils/authCookies.js';
 import { GraphQLError } from 'graphql';
 import { OpenAiLLM } from '../../utils/openai.js';
 import { Subscription } from '@avakado.ai/schemas';
+import { OAuthClient } from '@avakado.ai/schemas';
+import {
+    createUserOauthClient,
+    rotateOauthClientSecret,
+    publicClientView,
+    revokeRefreshFamily,
+    findMutableOauthClient,
+    assertCanManageOauthClient,
+    signSsoToken,
+} from '../../services/oauthService.js';
+
+function requireUser(context) {
+    if (!context.user) {
+        throw new GraphQLError("Authentication required", { extensions: { code: "UNAUTHENTICATED" } });
+    }
+    return context.user;
+}
 export const userResolvers = {
     Query: {
         me: async (_, filters, context, info) => {
@@ -37,7 +54,14 @@ export const userResolvers = {
             if (isVerified !== undefined) filter.isVerified = isVerified;
             if (id) filter._id = id
             return await User.find(filter).limit(limit).sort({ createdAt: -1 });
-        }
+        },
+        oauthClient: async (_, __, context) => {
+            const user = requireUser(context);
+            const mine = await OAuthClient.findOne({ createdBy: user._id, isFirstParty: { $ne: true } });
+            if (mine) return publicClientView(mine);
+            const shared = await OAuthClient.findOne({ business: user.business, isFirstParty: { $ne: true }, revokedAt: null }).sort({ createdAt: 1 });
+            return publicClientView(shared);
+        },
     },
     Mutation: {
         createUser: async (_, { user }, context, info) => {
@@ -62,17 +86,18 @@ export const userResolvers = {
             const result = await User.findByIdAndDelete(id);
             return !!result;
         },
-        generateUserAccessToken: async (_, { expiresIn = '30d' }, context) => {
-            const { newAccessToken } = AuthService.generateTokens(context.user._id, expiresIn)
-            return newAccessToken;
+        generateUserAccessToken: async (_, { expiresIn }, context) => {
+            const tokens = await AuthService.issueAccessForUser(context.user, expiresIn);
+            return tokens.access_token;
         },
         login: async (_, { input }, context) => {
             const { email, password } = input;
             const ipAddress = context.req?.ip || context.req?.connection?.remoteAddress;
             const userAgent = context.req?.get('user-agent');
-            const { accessToken, refreshToken, user } = await AuthService.login(email, password, ipAddress, userAgent)
-            setRefreshCookie(context.res, refreshToken, { expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365) });
-            return { accessToken, role: user.role, scopes: user.scopes || [], user };
+            const { accessToken, refreshToken, expiresIn, user } = await AuthService.login(email, password, ipAddress, userAgent)
+            if (refreshToken) setRefreshCookie(context.res, refreshToken, { maxAge: 30 * 24 * 60 * 60 * 1000 });
+            setSsoCookie(context.res, signSsoToken(user), { maxAge: 8 * 60 * 60 * 1000 });
+            return { accessToken, role: user.role, scopes: user.scopes || [], user, expiresIn };
         },
         register: async (_, { input }, context) => {
             const ipAddress = context.req?.ip || context.req?.connection?.remoteAddress;
@@ -85,7 +110,42 @@ export const userResolvers = {
         },
         logout: async (_, __, context) => {
             if (!context.user) throw new GraphQLError('Authentication required', { extensions: { code: 'UNAUTHENTICATED' } });
-            return AuthService.logout(context.res);
+            return AuthService.logout(context.res, context.user);
+        },
+        createOauthClient: async (_, { input }, context) => {
+            const user = requireUser(context);
+            const { client, clientSecret } = await createUserOauthClient({
+                user,
+                name: input.name,
+                redirectUris: input.redirectUris,
+                allowedOrigins: input.allowedOrigins || [],
+                grantMode: input.grantMode,
+            });
+            return { client: publicClientView(client), clientSecret };
+        },
+        updateOauthClient: async (_, { input }, context) => {
+            const user = requireUser(context);
+            const client = assertCanManageOauthClient(user, await findMutableOauthClient(user));
+            if (input.name != null) client.name = input.name;
+            if (input.redirectUris) client.redirectUris = input.redirectUris;
+            if (input.allowedOrigins) client.allowedOrigins = input.allowedOrigins;
+            if (input.grantMode) client.grantMode = input.grantMode;
+            await client.save();
+            return publicClientView(client);
+        },
+        rotateOauthClientSecret: async (_, __, context) => {
+            const user = requireUser(context);
+            const client = assertCanManageOauthClient(user, await findMutableOauthClient(user));
+            const rotated = await rotateOauthClientSecret(client);
+            return { client: publicClientView(rotated.client), clientSecret: rotated.clientSecret };
+        },
+        revokeOauthClient: async (_, __, context) => {
+            const user = requireUser(context);
+            const client = assertCanManageOauthClient(user, await findMutableOauthClient(user));
+            client.revokedAt = new Date();
+            await client.save();
+            await revokeRefreshFamily({ clientId: client.clientId });
+            return true;
         },
         requestPasswordReset: async (_, { email }) => AuthService.requestPasswordReset(email),
         forgotPassword: async (_, { email }) => AuthService.requestPasswordReset(email),
