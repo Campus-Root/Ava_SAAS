@@ -25,16 +25,12 @@ import { ticketTypeDefs } from './tickets/schema.js';
 import { notificationTypeDefs } from './notifications/schema.js';
 import { notificationResolvers } from './notifications/resolver.js';
 import { ApolloServerPluginLandingPageProductionDefault } from '@apollo/server/plugin/landingPage/default';
-// import { zohoTypeDefs } from './zoho/schema.js';
-// import { zohoResolvers } from './zoho/resolver.js';
 import { actionResolvers } from './actions/resolvers.js';
 import { actionTypeDefs } from './actions/schema.js';
 import { agentResolvers } from './agents/resolvers.js';
 import { agentTypeDefs } from './agents/schema.js';
 import { collectionResolvers } from './collections/resolvers.js';
 import { collectionTypeDefs } from './collections/schema.js';
-import { IntegrationTypeDefs } from './integrations/schema.js';
-import { IntegrationResolvers } from './integrations/resolver.js';
 import { jobResolvers } from './job/resolver.js';
 import { jobTypeDefs } from './job/schema.js';
 import { messageTypeDefs } from './messages/schema.js';
@@ -50,13 +46,10 @@ const typeDefs = mergeTypeDefs([
   scopeAuthDirectiveTypeDefs,
   sharedTypeDefs,
   conversationTypeDefs,
-  // twilioTypeDefs,
   channelTypeDefs,
   ticketTypeDefs,
   notificationTypeDefs,
   userTypeDefs,
-  IntegrationTypeDefs,
-  // zohoTypeDefs,
   serviceProvidersTypeDefs,
   agentTypeDefs,
   actionTypeDefs,
@@ -69,13 +62,10 @@ const typeDefs = mergeTypeDefs([
 ]);
 const resolvers = mergeResolvers([
   conversationResolvers,
-  // twilioResolvers,
   channelResolvers,
   ticketResolvers,
   notificationResolvers,
   userResolvers,
-  IntegrationResolvers,
-  // zohoResolvers,
   serviceProvidersResolvers,
   agentResolvers,
   actionResolvers,

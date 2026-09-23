@@ -16,7 +16,7 @@ import ical, { ICalCalendarMethod } from 'ical-generator';
 import { generateMeetingUrl } from "./utils/tools.js";
 import { DateTime } from "luxon";
 import { Ticket } from '@avakado.ai/schemas';
-import { ensureWhatsAppWebhookSubscription } from './utils/whatsapp-app-bootstrap.js';
+// import { ensureWhatsAppWebhookSubscription } from './utils/whatsapp-app-bootstrap.js';
 import { builtInRoutes } from './controller/index.js';
 const whitelist = ["https://ava-saas.onrender.com", "https://www.avakado.ai", "https://api-builder-eight.vercel.app", "https://avakado.ai", "http://localhost:5174", "http://localhost:3000", "https://studio.apollographql.com", "https://app.avakado.ai", "https://api-builder-eight.vercel.app/"];
 export const corsOptions = {
@@ -97,12 +97,12 @@ export const createApp = async () => {
             console.error("error with Route does not exist", error);
             throw error;
         }
-        try {
-            await ensureWhatsAppWebhookSubscription();
-        } catch (error) {
-            console.error("error with WhatsApp webhook subscription", error);
-            throw error;
-        }
+        // try {
+        //     await ensureWhatsAppWebhookSubscription();
+        // } catch (error) {
+        //     console.error("error with WhatsApp webhook subscription", error);
+        //     throw error;
+        // }
         return { app, server };
     } catch (error) {
         console.error("failed to start server", error);

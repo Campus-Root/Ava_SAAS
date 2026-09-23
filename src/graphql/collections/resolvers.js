@@ -1,12 +1,7 @@
-import { Collection } from '@avakado.ai/schemas';
-import { AgentModel } from '@avakado.ai/schemas';
-import { User } from '@avakado.ai/schemas';
+import { Collection, Business, User, AgentModel } from '@avakado.ai/schemas';
 import graphqlFields from 'graphql-fields';
 import { flattenFields, getSelectFields } from '../../utils/graphqlTools.js';
-import { Business } from '@avakado.ai/schemas';
 import { cloudflareIntegration } from '../../services/cloudflare.js';
-import { llamaParser } from '../../services/llamaparse.js';
-import { firecrawlService } from '../../services/firecrawl.js';
 export const collectionResolvers = {
     Query: {
         collections: async (_, { limit = 10, page = 1, id, isPublic }, context, info) => {
@@ -37,22 +32,22 @@ export const collectionResolvers = {
             let { name, description, source, chunkingDetails, webcrawler, parserDetails, isPublic, isFeatured } = collection;
             //webcrawler.options: {formats: ['markdown']}
             const newCollection = await Collection.create({ name, description, source, metaData: { chunkingDetails, parserDetails, webcrawler }, business: context.user.business, createdBy: context.user._id, isPublic, isFeatured });
-            switch (source) {
-                case "website":
-                    const lastUpdate = await firecrawlService.startBatchScrape(webcrawler.urls, webcrawler.options, { collection_id: newCollection._id, business_id: context.user.business._id });
-                    newCollection.metaData.webcrawler.lastUpdate = lastUpdate;
-                    newCollection.metaData.webcrawler.jobId = lastUpdate.id;
-                    newCollection.metaData.progressStages = [{ name: "webcrawler", status: "RUNNING", moreInfo: lastUpdate }, { name: "Chunking" }, { name: "embed and upsert" }];
-                    break;
-                case "youtube":
-                    break;
-                case "file":
-                    const parsing = await llamaParser.parse(newCollection.metaData.parserDetails, { collection_id: newCollection._id });
-                    newCollection.metaData.parserDetails.lastUpdate = parsing;
-                    newCollection.metaData.parserDetails.jobId = parsing.id;
-                    newCollection.metaData.progressStages = [{ name: "Parsing", status: "RUNNING", moreInfo: parsing }, { name: "Chunking" }, { name: "embed and upsert" }];
-                    break;
-            }
+            // switch (source) {
+            //     case "website":
+            //         const lastUpdate = await firecrawlService.startBatchScrape(webcrawler.urls, webcrawler.options, { collection_id: newCollection._id, business_id: context.user.business._id });
+            //         newCollection.metaData.webcrawler.lastUpdate = lastUpdate;
+            //         newCollection.metaData.webcrawler.jobId = lastUpdate.id;
+            //         newCollection.metaData.progressStages = [{ name: "webcrawler", status: "RUNNING", moreInfo: lastUpdate }, { name: "Chunking" }, { name: "embed and upsert" }];
+            //         break;
+            //     case "youtube":
+            //         break;
+            //     case "file":
+            //         const parsing = await llamaParser.parse(newCollection.metaData.parserDetails, { collection_id: newCollection._id });
+            //         newCollection.metaData.parserDetails.lastUpdate = parsing;
+            //         newCollection.metaData.parserDetails.jobId = parsing.id;
+            //         newCollection.metaData.progressStages = [{ name: "Parsing", status: "RUNNING", moreInfo: parsing }, { name: "Chunking" }, { name: "embed and upsert" }];
+            //         break;
+            // }
             // sendMessageToRoom(context.user.business.toString(), "collection-status", { collectionId: newCollection._id, status: "loading" }, "admin");
             // sendMessageToRoom(receiver.toString(), "adding-collection", { total: 1, progress: 0.3, collectionId: collectionId }, "admin");
             await newCollection.save();
