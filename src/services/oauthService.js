@@ -93,17 +93,32 @@ export async function ensureDashboardClient() {
     const clientId = DASHBOARD_CLIENT_ID;
     const existing = await OAuthClient.findOne({ clientId });
     if (existing) return existing;
-    return OAuthClient.create({
-        clientId,
-        name: "Ava Dashboard",
-        secretHash: null,
-        secretVersion: 1,
-        redirectUris: firstPartyRedirects(),
-        allowedOrigins: firstPartyOrigins(),
-        grantMode: "access_refresh",
-        isFirstParty: true,
-        revokedAt: null,
-    });
+    try {
+        return await OAuthClient.findOneAndUpdate(
+            { clientId },
+            {
+                $setOnInsert: {
+                    clientId,
+                    name: "Ava Dashboard",
+                    secretHash: null,
+                    secretVersion: 1,
+                    redirectUris: firstPartyRedirects(),
+                    allowedOrigins: firstPartyOrigins(),
+                    grantMode: "access_refresh",
+                    isFirstParty: true,
+                    revokedAt: null,
+                },
+            },
+            { upsert: true, new: true }
+        );
+    } catch (error) {
+        // Two PM2 workers can both miss findOne and then hit clientId_1.
+        if (error?.code === 11000) {
+            const raced = await OAuthClient.findOne({ clientId });
+            if (raced) return raced;
+        }
+        throw error;
+    }
 }
 
 export async function findActiveClient(clientId) {
