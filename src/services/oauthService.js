@@ -165,9 +165,9 @@ function tokenUse(grantMode) {
 }
 
 /** Access JWT claims: { iss, aud, sub, id, cid, sv, jti, scope, token_use, exp, iat }. Socket.IO/Chat only read `id`. */
-export function signAccessToken(user, client) {
+export function signAccessToken(user, client, expiresInOverride) {
     const jti = crypto.randomUUID();
-    const expiresIn = accessExpiresIn(client.grantMode);
+    const expiresIn = expiresInOverride || accessExpiresIn(client.grantMode);
     const payload = {
         id: String(user._id),
         sub: String(user._id),
@@ -218,8 +218,8 @@ async function persistRefresh({ user, client, familyId }) {
     return { refreshToken, familyId: family };
 }
 
-export async function issueTokenSet(user, client, { familyId } = {}) {
-    const access = signAccessToken(user, client);
+export async function issueTokenSet(user, client, { familyId, expiresIn } = {}) {
+    const access = signAccessToken(user, client, expiresIn);
     const result = {
         token_type: "Bearer",
         access_token: access.token,
@@ -286,7 +286,11 @@ export async function authenticateClient({ clientId, clientSecret, codeVerifier 
 }
 
 export async function exchangeAuthorizationCode(params) {
-    const client = await authenticateClient(params);
+    const client = await authenticateClient({
+        clientId: params.clientId || params.client_id,
+        clientSecret: params.clientSecret || params.client_secret,
+        codeVerifier: params.codeVerifier || params.code_verifier,
+    });
     const { user } = await consumeAuthorizationCode({
         code: params.code,
         client,

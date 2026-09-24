@@ -121,15 +121,15 @@ class AuthService {
         });
     }
 
-    async issueAccessForUser(user) {
+    async issueAccessForUser(user, expiresIn) {
         const own = await findActiveClient(clientIdFromUserId(user._id));
-        if (own) return issueTokenSet(user, own);
+        if (own) return issueTokenSet(user, own, { expiresIn });
         const dashboard = await ensureDashboardClient();
         return issueTokenSet(user, {
             clientId: dashboard.clientId,
             secretVersion: dashboard.secretVersion,
             grantMode: "access_only",
-        });
+        }, { expiresIn });
     }
 
     async logout(res, user) {
