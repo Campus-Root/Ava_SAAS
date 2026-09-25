@@ -181,32 +181,28 @@ export async function changePaidPlan({ user, targetPlanCode, expectedKind }) {
         balance: business?.credits?.balance,
         periodEnd: subscription.billing?.periodEnd,
     });
-    const rzpSub = await RazorPayService.updateSubscription(subscription.gatewaySubscriptionId, {
-        plan_id: razorpayPlanId(target),
-        schedule_change_at: apply,
-        notes: {
-            subscriptionId: subscription._id.toString(),
-            businessId: user.business.toString(),
-            planId: target._id.toString(),
-            planCode: target.code,
-            action: kind,
-            apply,
-        },
-    });
-    if (apply === "now") {
-        applyPlanFields(subscription, target);
-        applyGatewayBilling(subscription, rzpSub);
-        await subscription.save();
-        await setActiveSubscription(user.business, subscription, target, { planActive: true });
-        return { subscription: await populateSubscription(subscription), checkout: null, apply };
-    }
+    const previousStatus = subscription.status;
     subscription.pendingChange = {
         type: kind,
         targetPlan: target._id,
         targetPlanCode: target.code,
-        applyAt: subscription.billing?.periodEnd || null,
+        applyAt: apply === "now" ? new Date() : (subscription.billing?.periodEnd || null),
+        orderId: `paid:${subscription.billing?.paidCount ?? 0}`,
     };
-    if (kind === "downgrade") subscription.status = "pending_downgrade";
+    if (apply !== "now" && kind === "downgrade") subscription.status = "pending_downgrade";
+    await subscription.save();
+    let rzpSub;
+    try {
+        rzpSub = await RazorPayService.updateSubscription(subscription.gatewaySubscriptionId, {
+            plan_id: razorpayPlanId(target),
+            schedule_change_at: apply,
+        });
+    } catch (error) {
+        subscription.set("pendingChange", undefined);
+        subscription.status = previousStatus;
+        await subscription.save();
+        throw error;
+    }
     applyGatewayBilling(subscription, rzpSub);
     await subscription.save();
     return { subscription: await populateSubscription(subscription), checkout: null, apply };

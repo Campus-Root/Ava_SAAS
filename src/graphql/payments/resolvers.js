@@ -15,7 +15,7 @@ import {
 } from "../../services/subscriptionService.js";
 import { Business } from "@avakado.ai/schemas";
 import { RazorPayService } from "../../services/razorPayService.js";
-import { canClaimFreeTrial, freeTrialGrant, freeTrialResetJob, freeTrialRunUrl, topupAllowed, buildTopupPaymentDoc } from "../../services/billingRules.js";
+import { canClaimFreeTrial, freeTrialGrant, freeTrialResetJob, topupAllowed, buildTopupPaymentDoc } from "../../services/billingRules.js";
 
 
 import { PAID_PLAN_TYPES } from "../../services/creditsCycle.js";
@@ -160,16 +160,6 @@ export const paymentResolvers = {
             if (!plan) throw new GraphQLError("Plan not found", { extensions: { code: "NOT_FOUND" } });
             if (plan.type === "TOPUP") throw new GraphQLError("Use purchaseTopup for top-up plans", { extensions: { code: "BAD_USER_INPUT" } });
             if (!razorpayPlanId(plan)) throw new GraphQLError("Plan is missing a Razorpay plan id", { extensions: { code: "BAD_USER_INPUT" } });
-            const business = await Business.findById(context.user.business).select("credits");
-            const trialActive = Boolean(business?.credits?.freeTrailExpiry && business.credits.freeTrailExpiry > new Date());
-            if (trialActive) {
-                try {
-                    await axios.post(freeTrialRunUrl(business._id));
-                } catch (error) {
-                    console.error("Free trial reset cron was skipped", error?.response?.status || error.message);
-                }
-            }
-            await Business.findByIdAndUpdate(context.user.business, { $set: { "credits.freeTrailClaimed": true, "credits.freeTrailExpiry": new Date(), "credits.lastUpdated": new Date() } });
             const current = await Subscription.findOne({ business: context.user.business, status: { $in: CURRENT_SUBSCRIPTION_STATUSES } }).populate("plan");
             if (current && PAID_PLAN_TYPES.has(current.plan?.type) && !["created", "pending_payment"].includes(current.status)) {
                 throw new GraphQLError("An active paid subscription already exists. Use upgrade or downgrade.", { extensions: { code: "BAD_USER_INPUT" } });
