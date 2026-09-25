@@ -39,7 +39,10 @@ export class RazorPayService {
             return subscription;
         } catch (error) {
             console.error(error);
-            throw new Error("Failed to create subscription");
+            const description = error?.error?.description || error?.message;
+            const wrapped = new Error(description || "Failed to create subscription");
+            wrapped.error = error?.error;
+            throw wrapped;
         }
     }
     static async fetchSubscriptionById(subscription_id) {
