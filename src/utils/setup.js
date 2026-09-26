@@ -37,6 +37,7 @@ export const PROVIDER_AUTH_TYPE = {
     Telegram: 'apiKey',
     Exotel: 'apiKey',
     'Tata Tele': 'apiKey',
+    'Avakado.ai': 'oauth2',
 };
 
 export function buildAuthenticatorFromTokens(providerName, tokensRes) {

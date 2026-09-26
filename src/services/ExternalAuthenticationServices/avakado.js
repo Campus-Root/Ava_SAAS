@@ -1,206 +1,238 @@
 import axios from "axios";
 import BaseOAuthProvider from "./base.js";
-import AuthService from "../authService.js";
-import { User } from '@avakado.ai/schemas';
+
+const OAUTH_BASE = (process.env.AVAKADO_OAUTH_BASE || "https://app.avakado.ai").replace(/\/+$/, "");
+const AUTHORIZE_URL = `${OAUTH_BASE}/oauth/authorize`;
+const TOKEN_URL = `${OAUTH_BASE}/oauth/token`;
+const USERINFO_URL = `${OAUTH_BASE}/oauth/userinfo`;
+
+function formBody(fields) {
+    const body = new URLSearchParams();
+    for (const [key, value] of Object.entries(fields)) {
+        if (value != null && value !== "") body.set(key, String(value));
+    }
+    return body.toString();
+}
+
+function expiresAtFrom(expiresIn) {
+    const seconds = Number(expiresIn);
+    if (!Number.isFinite(seconds) || seconds <= 0) return null;
+    return new Date(Date.now() + seconds * 1000);
+}
+
 export default class OauthAvakado extends BaseOAuthProvider {
     name = "avakado";
 
     getConfig() {
-        return {};
-    }
-    getAuthUrl({ state = "" }) {
         return {
-            AuthUrl: `https://www.avakado.ai/integrate/avakado?state=${state}`,
-            ExpectedKeysFromQuery: {
-                type: "object",
-                required: ["expiry", "scope", "userId"],
-                properties: {
-                    userId: {
-                        type: "string",
-                        description: "User ID",
-                        default: "",
-                        xUi: {
-                            label: "User ID",
-                            inputType: "text",
-                        }
-                    },
-                    expiry: {
-                        type: "string",
-                        description: "Expiry",
-                        default: "30d",
-                        xUi: {
-                            label: "Expiry",
-                            inputType: "text",
-                        }
-                    },
-                    scope: {
-                        type: "array",
-                        description: "Avakado Scopes",
-                        items: {
-                            type: "string",
-                            // enum: ["", "", ""]
-                        },
-                        // default: ["", ""],
-                        xUi: {
-                            label: "Enable capabilities",
-                            inputType: "multi-select",
-                            options: [
-                                // { value: "", label: "" },
-                            ],
-                            helpText: "Application-level gating only - this is used to control the capabilities of the authenticattion key"
-                        }
-                    }
-                },
-                additionalProperties: false
-            }
+            clientId: process.env.AVAKADO_OAUTH_CLIENT_ID || "",
+            clientSecret: process.env.AVAKADO_OAUTH_CLIENT_SECRET || "",
+            redirectUri: process.env.AVAKADO_OAUTH_REDIRECT_URI || "",
         };
     }
 
-    async getTokens({ expiry, scope, userId }) {
+    getAuthUrl({ state = "", scopes = [], clientId, redirectUri, codeChallenge, codeChallengeMethod = "S256" } = {}) {
+        const config = this.getConfig();
+        const id = clientId || config.clientId;
+        const redirect = redirectUri || config.redirectUri;
+        const params = new URLSearchParams({ response_type: "code" });
+        if (id) params.set("client_id", id);
+        if (redirect) params.set("redirect_uri", redirect);
+        if (state) params.set("state", state);
+        if (scopes.length) params.set("scope", scopes.join(" "));
+        if (codeChallenge) {
+            params.set("code_challenge", codeChallenge);
+            params.set("code_challenge_method", codeChallengeMethod || "S256");
+        }
+        return {
+            AuthUrl: `${AUTHORIZE_URL}?${params}`,
+            ExpectedKeysFromQuery: {
+                type: "object",
+                required: ["clientId", "clientSecret", "redirectUri", "code"],
+                properties: {
+                    clientId: {
+                        type: "string",
+                        description: "OAuth client id from the Ava dashboard",
+                        minLength: 1,
+                        xUi: {
+                            label: "Client ID",
+                            inputType: "text",
+                            placeholder: "ava_<userId>",
+                            helpText: "Created in the dashboard. One client per user.",
+                        },
+                    },
+                    clientSecret: {
+                        type: "string",
+                        description: "OAuth client secret",
+                        minLength: 1,
+                        xUi: {
+                            label: "Client secret",
+                            inputType: "password",
+                            sensitive: true,
+                            placeholder: "ava_sk_…",
+                            helpText: "Shown once when the client is created or the secret is rotated.",
+                        },
+                    },
+                    redirectUri: {
+                        type: "string",
+                        description: "Redirect URI registered on the client",
+                        minLength: 1,
+                        xUi: {
+                            label: "Redirect URI",
+                            inputType: "text",
+                            helpText: "Must match a registered redirect URI exactly, including the path.",
+                        },
+                    },
+                    code: {
+                        type: "string",
+                        description: "Authorization code from the redirect",
+                        minLength: 1,
+                        xUi: {
+                            label: "Authorization code",
+                            inputType: "text",
+                            helpText: "Single use. Expires two minutes after the user approves.",
+                        },
+                    },
+                    codeVerifier: {
+                        type: "string",
+                        description: "PKCE verifier when authorize sent a code_challenge",
+                        xUi: {
+                            label: "PKCE verifier",
+                            inputType: "text",
+                            helpText: "Required only when the authorize request included code_challenge.",
+                        },
+                    },
+                },
+                additionalProperties: false,
+            },
+        };
+    }
+
+    async getTokens({ code, clientId, clientSecret, redirectUri, redirect_uri, codeVerifier, code_verifier } = {}) {
+        const id = clientId || this.getConfig().clientId;
+        const secret = clientSecret || this.getConfig().clientSecret;
+        const redirect = redirectUri || redirect_uri || this.getConfig().redirectUri;
+        const verifier = codeVerifier || code_verifier;
+        for (const [name, value] of [["code", code], ["clientId", id], ["clientSecret", secret], ["redirectUri", redirect]]) {
+            const invalid = this._validateStringParam(value, name);
+            if (invalid) return invalid;
+        }
         try {
-            const user = await User.findById(userId);
-            if (!user) return this._errorResponse("user_not_found", "User not found.", 400);
-            const tokens = await AuthService.issueAccessForUser(user);
-            return this._successResponse({ credentials: { expiry, scope, accessToken: tokens.access_token } });
+            const { data } = await axios.post(TOKEN_URL, formBody({
+                grant_type: "authorization_code",
+                code,
+                redirect_uri: redirect,
+                client_id: id,
+                client_secret: secret,
+                code_verifier: verifier,
+            }), {
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            });
+            if (!data?.access_token) {
+                return this._errorResponse("malformed_response", "Avakado did not return an access token.", 502);
+            }
+            const credentials = this._credentialsFromToken(data, { clientId: id, clientSecret: secret, redirectUri: redirect });
+            const profile = await this.getUserInfo({ accessToken: data.access_token });
+            return this._successResponse({
+                credentials,
+                scope: this._parseScopeString(data.scope, " "),
+                accountDetails: profile.success ? profile.data : null,
+                config: { clientId: id, redirectUri: redirect },
+            });
         } catch (error) {
             return this._handleError(error);
         }
     }
 
-    // async setupChannel({ apiAuthenticator, channelId, config }) {
-    //     const webhookUrl = `https://sockets.avakado.ai/exotel-redirect?channelId=${channelId}`;
-    //     const { apiKey, apiToken, accountSid, subdomain } = apiAuthenticator.credentials;
-    //     let { exophone, exophoneSid = null, appId, capabilities } = config; // capabilities = { voice: true, sms: true, friendlyName: "Exotel Voice App" }
-    //     if (!exophone) return this._errorResponse("missing_exophone", "config.exophone (DID number) is required.", 400);
-    //     try {
-    //         if (!exophoneSid) {
-    //             const { data: { incoming_phone_numbers } } = await axios.get(`https://${apiKey}:${apiToken}@${subdomain}/v2_beta/Accounts/${accountSid}/IncomingPhoneNumbers.json`);
-    //             exophoneSid = incoming_phone_numbers.filter(number => number.phone_number === exophone)[0].sid;
-    //             if (!exophoneSid) return this._errorResponse("exophone_not_found", "Exophone not found.", 400);
-    //         }
-    //         const body = new URLSearchParams({
-    //             ...(capabilities.voice && { VoiceUrl: `http://my.exotel.com/${accountSid}/exoml/start_voice/${appId}` }),
-    //             ...(capabilities.sms && { SMSUrl: `http://my.exotel.com/${accountSid}/exoml/start_sms/${appId}` }),
-    //             ...(capabilities.friendlyName && { FriendlyName: capabilities.friendlyName }),
-    //         });
-    //         try {
-    //             const { data } = await axios.put(`https://${apiKey}:${apiToken}@${subdomain}/v2_beta/Accounts/${accountSid}/IncomingPhoneNumbers/${exophoneSid}.json`,
-    //                 body,
-    //                 {
-    //                     headers: {
-    //                         'Content-Type': 'application/x-www-form-urlencoded',
-    //                     }
-    //                 });
-    //         } catch (error) {
-    //             const responseData = error?.response?.data;
-    //             let message;
-    //             if (typeof responseData === "string") {
-    //                 message = responseData;
-    //             } else if (responseData && typeof responseData === "object") {
-    //                 // Exotel typically nests errors under RestException
-    //                 message =
-    //                     responseData.RestException?.Message ||
-    //                     responseData.message ||
-    //                     JSON.stringify(responseData);
-    //             } else {
-    //                 message = error.message || "Unknown error";
-    //             }
-
-    //             throw new Error(`Failed to assign phone number to flow: ${message}`);
-    //         }
-    //         return { success: true, config: { ...config, webhookUrl: webhookUrl }, error: null, externalId: exophone }
-    //     } catch (error) {
-    //         console.log("error", error);
-    //         return this._handleError(error);
-    //     }
-    // }
-
-    async getUserInfo({ apiKey, apiToken, accountSid, subdomain = SUBDOMAIN_MAP.singapore }) {
-        if (!apiKey || !apiToken || !accountSid) {
-            return this._errorResponse("missing_credentials", "apiKey, apiToken, and accountSid are required.", 400);
-        }
+    async refreshToken({ refreshToken, clientId, clientSecret } = {}) {
+        const id = clientId || this.getConfig().clientId;
+        const secret = clientSecret || this.getConfig().clientSecret;
+        const refreshError = this._validateStringParam(refreshToken, "refreshToken");
+        if (refreshError) return refreshError;
+        const idError = this._validateStringParam(id, "clientId");
+        if (idError) return idError;
+        const secretError = this._validateStringParam(secret, "clientSecret");
+        if (secretError) return secretError;
         try {
-            // Fetch account-level info via the Calls list (lightest endpoint that confirms identity)
-            const { data } = await axios.get(
-                `${buildBaseUrl(subdomain)}/v1/Accounts/${accountSid}/Calls.json?PageSize=1`,
-                { headers: { Authorization: basicAuth(apiKey, apiToken) } }
-            );
-            return this._successResponse({ credentials: { accountSid, subdomain, ...data }, accountDetails: { accountSid, subdomain, ...data } });
+            const { data } = await axios.post(TOKEN_URL, formBody({
+                grant_type: "refresh_token",
+                refresh_token: refreshToken,
+                client_id: id,
+                client_secret: secret,
+            }), {
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            });
+            if (!data?.access_token || !data?.refresh_token) {
+                return this._errorResponse("malformed_response", "Avakado did not return a rotated token pair.", 502);
+            }
+            return this._successResponse(this._credentialsFromToken(data, { clientId: id, clientSecret: secret }));
         } catch (error) {
             return this._handleError(error);
         }
     }
 
-    async getTokenInfo({ apiKey, apiToken, accountSid, subdomain = SUBDOMAIN_MAP.singapore }) {
-        if (!apiKey || !apiToken || !accountSid) {
-            return this._errorResponse("missing_credentials", "apiKey, apiToken, and accountSid are required.", 400);
-        }
+    async getUserInfo({ accessToken } = {}) {
+        const validation = this._validateStringParam(accessToken, "accessToken");
+        if (validation) return validation;
         try {
-            await axios.get(
-                `${buildBaseUrl(subdomain)}/v1/Accounts/${accountSid}/Calls.json?PageSize=1`,
-                { headers: { Authorization: basicAuth(apiKey, apiToken) } }
-            );
-            return this._successResponse({ credentials: { clientId: accountSid, scopes: [], expiresIn: null, isValid: true } });
+            const { data } = await axios.get(USERINFO_URL, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (!data?.sub && !data?.email) {
+                return this._errorResponse("malformed_response", "Avakado userinfo did not include an account.", 502);
+            }
+            return this._successResponse({
+                id: data.sub,
+                email: data.email,
+                name: data.name,
+                business: data.business ? String(data.business) : null,
+            });
         } catch (error) {
             return this._handleError(error);
         }
     }
 
-    async validateToken({ apiKey, apiToken, accountSid }) {
-        // Static credentials — no expiry or refresh flow
-        return Boolean(apiKey && apiToken && accountSid);
+    async getTokenInfo({ accessToken } = {}) {
+        const profile = await this.getUserInfo({ accessToken });
+        if (!profile.success) return profile;
+        return this._successResponse({
+            clientId: null,
+            scopes: [],
+            expiresIn: null,
+            email: profile.data.email,
+            userId: profile.data.id,
+            isValid: true,
+        });
+    }
+
+    async validateToken({ accessToken } = {}) {
+        if (!accessToken || typeof accessToken !== "string") return false;
+        const profile = await this.getUserInfo({ accessToken });
+        return Boolean(profile.success);
+    }
+
+    _credentialsFromToken(data, { clientId, clientSecret, redirectUri } = {}) {
+        return {
+            accessToken: data.access_token,
+            refreshToken: data.refresh_token || null,
+            tokenType: data.token_type || "Bearer",
+            expiresIn: data.expires_in,
+            expiresAt: expiresAtFrom(data.expires_in),
+            clientId: clientId || null,
+            clientSecret: clientSecret || null,
+            redirectUri: redirectUri || null,
+        };
     }
 
     _handleError(error) {
-        // FIX: Handle case where response is null/undefined (network error)
-        const response = error.response;
-
+        const response = error?.response;
         if (!response) {
-            return this._errorResponse(
-                "network_error",
-                "Unable to reach Exotel authentication servers.",
-                503
-            );
+            return this._errorResponse("network_error", "Unable to reach Avakado.", 503);
         }
-
-        const status = response.status;
+        const status = response.status || 500;
         const errorData = response.data || {};
-
-        switch (status) {
-            case 400:
-                return this._errorResponse(
-                    this._extractErrorCode(errorData, "invalid_grant"),
-                    this._extractErrorMessage(
-                        errorData,
-                        "The token is invalid or has already been used. For OAuth 2.1 refresh token rotation, this means the refresh token was already consumed."
-                    ),
-                    400
-                );
-            case 401:
-                return this._errorResponse(
-                    "unauthorized",
-                    "Access token is expired or invalid.",
-                    401
-                );
-            case 403:
-                return this._errorResponse(
-                    "forbidden",
-                    "Insufficient permissions or missing required scopes.",
-                    403
-                );
-            case 429:
-                return this._errorResponse(
-                    "rate_limit_exceeded",
-                    "Too many requests. Respect the Retry-After header before retrying.",
-                    429
-                );
-            default:
-                return this._errorResponse(
-                    "provider_error",
-                    `Exotel error (${status})`,
-                    status || 503
-                );
-        }
+        const code = typeof errorData.error === "string" ? errorData.error : "provider_error";
+        const message = errorData.error_description || errorData.message || `Avakado error (${status})`;
+        return this._errorResponse(code, message, status);
     }
-};
-
+}
