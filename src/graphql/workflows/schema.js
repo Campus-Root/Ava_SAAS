@@ -2,44 +2,36 @@ export const workflowTypeDefs = `#graphql
     type Workflow {
         _id: ID!
         name: String
-        nodes: JSON
-        connections: JSON
+        status: String
+        trigger: String
+        task: JSON
         business: Business
         createdBy: User
-        status: String
         createdAt: DateTime
         updatedAt: DateTime
     }
-    type WorkflowConnection {
+    type WorkflowList {
         data: [Workflow]
         metaData: PaginationMetaData
     }
-    type InbuiltNodeConnection {
-        data: [InbuiltNode]
+    type TriggerTemplate {
+        name: String
+    description: String,
+        type: String
+        payload: JSON
+    }
+    type TriggerTemplateList {
+        data: [TriggerTemplate]
         metaData: PaginationMetaData
     }
-    type InbuiltNode {
-        _id: ID!
-        id: String
-        type: String
-        ports: JSON
-        core: JSON
-        meta: JSON
-        createdBy: User
-        createdAt: DateTime
-        updatedAt: DateTime
-    }
 type Query {
-fetchWorkflows(id: ID, limit: Int, page: Int): WorkflowConnection @requireScope(scope: "workflow:read") @requireBusinessAccess
-fetchInbuiltNodes(label: String, type: String, templateType: String, id: ID, limit: Int, page: Int): InbuiltNodeConnection @requireScope(scope: "workflow:read") @requireBusinessAccess
+    fetchTriggerTemplates(limit: Int, page: Int, name: String): TriggerTemplateList @requireScope(scope: "workflow:read") @requireBusinessAccess
+    fetchWorkflows(id: ID, trigger: String, status: String, limit: Int, page: Int): WorkflowList @requireScope(scope: "workflow:read") @requireBusinessAccess
 }
 type Mutation {
-    createWorkflow(name: String, nodes: JSON, connections: JSON): Workflow @requireScope(scope: "workflow:create") @requireBusinessAccess
-    updateWorkflow(id: ID!, name: String, nodes: JSON, connections: JSON): Workflow @requireScope(scope: "workflow:update") @requireBusinessAccess
+    createWorkflow(name: String, trigger: String, task: JSON): Workflow @requireScope(scope: "workflow:create") @requireBusinessAccess
+    updateWorkflow(id: ID!, name: String, trigger: String, task: JSON, status: String): Workflow @requireScope(scope: "workflow:update") @requireBusinessAccess
     deleteWorkflow(id: ID!): Boolean @requireScope(scope: "workflow:delete") @requireBusinessAccess
-    testWorkflowNode(input: JSON, node: JSON): JSON @requireScope(scope: "action:test") @requireBusinessAccess
-    createInbuiltNode(id: ID, ports: JSON, core: JSON, meta: JSON): InbuiltNode @requireScope(scope: "super:platform_management")
-    updateInbuiltNode(id: ID, ports: JSON, core: JSON, meta: JSON): InbuiltNode @requireScope(scope: "super:platform_management")
-    deleteInbuiltNode(id: ID!): Boolean @requireScope(scope: "super:platform_management")
+    testTask(input: JSON): JSON @requireScope(scope: "workflow:test") @requireBusinessAccess
 }
 `;

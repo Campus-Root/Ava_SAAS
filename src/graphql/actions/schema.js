@@ -16,14 +16,14 @@ export const actionTypeDefs = `#graphql
     """JSON schema defining the action parameters"""
     config: JSON
     parameters: JSON
+    """Task tree for the action"""
+    task: JSON
     """JavaScript function code that implements the action"""
     functionString: String
     """Error handling function code"""
     errorFunction: String
     """UI configuration for rendering the action"""
     UI: JSON
-    """Whether the action is publicly available"""
-    isPublic: Boolean
     """When the action was created"""
     createdAt: DateTime
     """When the action was last updated"""
@@ -44,14 +44,14 @@ export const actionTypeDefs = `#graphql
     parameters: JSON
     """JSON schema defining the action config"""
     config: JSON
+    """Task tree for the action"""
+    task: JSON
     """JavaScript function code that implements the action"""
     functionString: String
     """Error handling function code"""
     errorFunction: String
     """UI configuration for rendering the action"""
     UI: JSON
-    """Whether the action is publicly available"""
-    isPublic: Boolean
   }
 
   type ActionPagination {
@@ -65,7 +65,7 @@ export const actionTypeDefs = `#graphql
     @param id - Optional ID to fetch a specific action
     @param page - Page number to return
     @param isPublic - Filter by public/private status"""
-    actions(id:ID limit: Int page: Int isPublic: Boolean): ActionPagination @requireScope(scope: "action:read") @requireBusinessAccess
+    actions(id:ID limit: Int page: Int): ActionPagination @requireScope(scope: "action:read") @requireBusinessAccess
   }
 
   type Mutation {
@@ -83,8 +83,7 @@ export const actionTypeDefs = `#graphql
     deleteAction(id: ID!): Boolean @requireScope(scope: "action:delete") @requireBusinessAccess
 
     """Test an action
-    @param actionId - ID of action to test
-    @param parameters - Parameters to pass to the action"""
-    testAction(actionId: ID!, parameters: JSON!): JSON @requireScope(scope: "action:read") @requireBusinessAccess
+    @param id - ID of action to test"""
+    testAction(id: ID!): JSON @requireScope(scope: "action:read") @requireBusinessAccess
   }
 `; 
