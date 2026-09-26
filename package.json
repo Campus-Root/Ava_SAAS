@@ -15,7 +15,7 @@
   "dependencies": {
     "@apollo/server": "^5.0.0",
     "@as-integrations/express5": "^1.1.2",
-    "@avakado.ai/schemas": "^1.1.6",
+    "@avakado.ai/schemas": "^1.1.7",
     "@aws-sdk/client-s3": "^3.1010.0",
     "@aws-sdk/s3-request-presigner": "^3.1010.0",
     "@danielxceron/youtube-transcript": "^1.2.3",
