@@ -22,7 +22,7 @@ export default class OauthExotel extends BaseOAuthProvider {
 
     // Exotel has no OAuth — credentials are static (apiKey + apiToken + accountSid + subdomain).
     // getAuthUrl is not applicable; the UI should collect these four fields directly.
-    getAuthUrl({ state = "" }) {
+    async getAuthUrl({ state = "" }) {
         return {
             AuthUrl: `https://www.avakado.ai/integrate/exotel?state=${state}`,
             ExpectedKeysFromQuery: {

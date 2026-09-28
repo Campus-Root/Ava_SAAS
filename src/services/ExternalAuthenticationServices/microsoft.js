@@ -31,7 +31,7 @@ export default class OauthMicrosoft extends BaseOAuthProvider {
         };
     }
 
-    getAuthUrl({ state = "", scopes = [] }) {
+    async getAuthUrl({ state = "", scopes = [] }) {
         const params = new URLSearchParams({
             client_id: AzureApplicationClientId,
             response_type: "code",

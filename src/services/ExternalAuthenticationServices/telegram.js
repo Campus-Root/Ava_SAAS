@@ -2,7 +2,7 @@ import { Telegraf } from "telegraf";
 import BaseOAuthProvider from "./base.js";
 export default class OauthTelegram extends BaseOAuthProvider {
     name = "telegram";
-    getAuthUrl({ state = "" }) {
+    async getAuthUrl({ state = "" }) {
         return {
             ExpectedKeysFromQuery: {
                 type: "object",

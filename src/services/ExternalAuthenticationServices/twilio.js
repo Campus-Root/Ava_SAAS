@@ -24,7 +24,7 @@ export default class OauthTwilio extends BaseOAuthProvider {
     getConfig() {
         return { authToken: TWILIO_AUTH_TOKEN, };
     }
-    getAuthUrl({ state = "" }) {
+    async getAuthUrl({ state = "" }) {
         const params = new URLSearchParams({ redirectUri: TWILIO_REDIRECT_URI, ...(state && { state }), });
         return { ExpectedKeysFromQuery: null, AuthUrl: `https://www.twilio.com/authorize/${TWILIO_CONNECT_APP_SID}?${params}` }
     }

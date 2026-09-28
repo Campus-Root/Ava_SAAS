@@ -27,7 +27,7 @@ export default class OauthGoogle extends BaseOAuthProvider {
         };
     }
 
-    getAuthUrl({ state = "", scopes = [] }) {
+    async getAuthUrl({ state = "", scopes = [] }) {
         const params = new URLSearchParams({
             client_id: GOOGLE_CLIENT_ID,
             redirect_uri: GOOGLE_REDIRECT_URI,

@@ -36,7 +36,7 @@ export default class OauthInstagram extends BaseOAuthProvider {
         };
     }
 
-    getAuthUrl({ state = "", scopes = [] }) {
+    async getAuthUrl({ state = "", scopes = [] }) {
         const params = new URLSearchParams({
             client_id: IG_CLIENT_ID,
             redirect_uri: IG_REDIRECT_URI,

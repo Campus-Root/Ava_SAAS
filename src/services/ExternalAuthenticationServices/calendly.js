@@ -36,7 +36,7 @@ export default class OauthCalendly extends BaseOAuthProvider {
         };
     }
 
-    getAuthUrl({ state = "", scopes = [] }) {
+    async getAuthUrl({ state = "", scopes = [] }) {
         const params = new URLSearchParams({
             client_id: CALENDLY_CLIENT_ID,
             redirect_uri: CALENDLY_REDIRECT_URI,

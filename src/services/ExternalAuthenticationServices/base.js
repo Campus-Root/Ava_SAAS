@@ -29,7 +29,7 @@ export class BaseOAuthProvider {
      * @param {string[]} params.scopes - OAuth scopes to request
      * @returns {string} - Full authorization URL
      */
-    getAuthUrl({ state = "", scopes = [] }) {
+    async getAuthUrl({ state = "", scopes = [] }) {
         throw new Error(`${this.name}.getAuthUrl() not implemented`);
     }
 

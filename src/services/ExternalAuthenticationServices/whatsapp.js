@@ -34,7 +34,7 @@ export default class OauthWhatsApp extends BaseOAuthProvider {
         };
     }
 
-    getAuthUrl({ state = "", scopes = [] }) {
+    async getAuthUrl({ state = "", scopes = [] }) {
         const params = new URLSearchParams({
             client_id: wa_client_id,
             redirect_uri: wa_redirect_uri,

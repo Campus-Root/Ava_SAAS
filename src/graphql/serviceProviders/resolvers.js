@@ -111,7 +111,7 @@ export const serviceProvidersResolvers = {
             if (!providerService) throw new GraphQLError("Provider not found", { extensions: { code: 'INVALID_INPUT' } });
             const scopes = [...new Set([...api.provider.basicScopes, ...api.requiredScopes])];
             if (!scopes?.length) throw new GraphQLError("Scopes not found", { extensions: { code: 'INVALID_INPUT' } });
-            const { ExpectedKeysFromQuery = null, AuthUrl, error = null } = providerService.getAuthUrl({ state, scopes, context })
+            const { ExpectedKeysFromQuery = null, AuthUrl, error = null } = await providerService.getAuthUrl({ state, scopes, context })
             if (error) throw new GraphQLError(error.message, { extensions: { code: error.code } });
             let authStrategy = { authType: api.schemas.auth, authUrl: AuthUrl, scopes: scopes, providerId: api.provider._id, misc: { requiredKeysFromQuery: ExpectedKeysFromQuery } }
             return authStrategy;

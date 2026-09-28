@@ -18,7 +18,7 @@ export default class OauthTataTele extends BaseOAuthProvider {
     }
     // Smartflo does not use OAuth. Tokens are manually generated in the Smartflo portal.
     // The UI should collect: apiToken and apiKey from API Connect → API Tokens.
-    getAuthUrl({ state = "" }) {
+    async getAuthUrl({ state = "" }) {
         return {
             AuthUrl: `https://www.avakado.ai/integrate/tatatele?state=${state}`, ExpectedKeysFromQuery: {
                 type: "object",
