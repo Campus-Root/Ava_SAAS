@@ -25,13 +25,18 @@ export const actionResolvers = {
             await Business.populate(newAction, { path: 'business', select: nested.business });
             return newAction;
         },
-        testAction: async (_, { id }, context) => {
-            // const action = await Action.findById(actionId);
-            // const AsyncFunction = Object.getPrototypeOf(async function () { }).constructor;
-            // const mainFunction = new AsyncFunction("input", action.functionString);
-            // const result = await mainFunction(parameters);
-            // return result;
-            return { message: "Test action not implemented" };
+        testAction: async (_, { id, input }, context) => {
+            try {
+                const action = await Action.findById(id);
+                if (!action) return { message: "Action not found" };
+                const AsyncFunction = Object.getPrototypeOf(async function () { }).constructor;
+                const mainFunction = new AsyncFunction("input", action.functionString);
+                const result = await mainFunction(input);
+                return { message: "Action tested successfully", result };
+            } catch (error) {
+                return { message: "Error testing action", error: error.message };
+            }
+
         },
         updateAction: async (_, { id, action }, context, info) => {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });

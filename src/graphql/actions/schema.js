@@ -9,13 +9,12 @@ export const actionTypeDefs = `#graphql
     description: String 
     """Business that owns this action"""
     business: Business
-    """Whether the action runs asynchronously"""
-    async: Boolean
     """Whether the action requires approval before execution"""
     needsApproval: Boolean
     """JSON schema defining the action parameters"""
     config: JSON
-    parameters: JSON
+    inputSchema: JSON,
+    outputSchema: JSON,
     """Task tree for the action"""
     task: JSON
     """JavaScript function code that implements the action"""
@@ -36,12 +35,10 @@ export const actionTypeDefs = `#graphql
     name: String!
     """Description of what the action does"""
     description: String
-    """Whether the action runs asynchronously"""
-    async: Boolean
     """Whether the action requires approval before execution"""
     needsApproval: Boolean
-    """JSON schema defining the action parameters"""
-    parameters: JSON
+    inputSchema: JSON,
+    outputSchema: JSON,
     """JSON schema defining the action config"""
     config: JSON
     """Task tree for the action"""
@@ -84,6 +81,6 @@ export const actionTypeDefs = `#graphql
 
     """Test an action
     @param id - ID of action to test"""
-    testAction(id: ID!): JSON @requireScope(scope: "action:read") @requireBusinessAccess
+    testAction(id: ID! input: JSON): JSON @requireScope(scope: "action:read") @requireBusinessAccess
   }
 `; 
