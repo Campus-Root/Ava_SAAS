@@ -9,10 +9,12 @@ import { Lead } from '@avakado.ai/schemas';
 import { Conversation } from '@avakado.ai/schemas';
 import { leadRoutes } from './leadsRouter.js';
 import { conversationRoutes } from './conversationRouter.js';
+import { campaignRoutes } from './campaignRouter.js';
 export const builtInRoutes = Router();
 builtInRoutes.get('/', (_, res) => res.status(200).send('Server running'));
 builtInRoutes.use('/lead', leadRoutes);
 builtInRoutes.use('/conversation', conversationRoutes);
+builtInRoutes.use('/campaign', campaignRoutes);
 builtInRoutes.get('/exotel-redirect', async (request, reply) => {
     const { channelId, CallSid, CallFrom, CallTo, Direction, CustomField = "{}" } = request.query;
     // console.log(JSON.stringify({ query: request.query }, null, 2))
