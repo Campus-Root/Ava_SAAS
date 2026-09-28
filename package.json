@@ -80,5 +80,8 @@
   "devDependencies": {
     "mongodb-memory-server": "^10.2.0",
     "nodemon": "^3.1.9"
+  },
+  "overrides": {
+    "fast-uri": "3.1.8"
   }
 }
