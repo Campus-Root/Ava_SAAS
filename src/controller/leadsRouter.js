@@ -40,9 +40,9 @@ function parseMessageField(value) {
 export const leadRoutes = Router();
 leadRoutes.get('/', authMiddleware, async (req, res) => {
     try {
-        const { businessId } = req.user;
+        const { business } = req.user;
         const { page = 1, limit = 10 } = req.query;
-        let filter = { business: businessId };
+        let filter = { business };
         if (req.query.search) {
             filter.name = { $regex: req.query.search, $options: 'i' };
         }
@@ -76,9 +76,9 @@ leadRoutes.get('/:id', authMiddleware, async (req, res) => {
 });
 leadRoutes.post('/', authMiddleware, async (req, res) => {
     try {
-        const { businessId } = req.user;
+        const { business } = req.user;
         const { name, template, contactDetails, source, tags, status, notes, data } = req.body;
-        const lead = await Lead.create({ business: businessId, name, template, contactDetails, source, tags, status, notes, data });
+        const lead = await Lead.create({ business, name, template, contactDetails, source, tags, status, notes, data });
         res.status(200).json({ success: true, message: 'Lead created successfully', data: lead });
     } catch (error) {
         console.error(error);

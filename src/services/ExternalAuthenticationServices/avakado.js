@@ -1,6 +1,7 @@
 import axios from "axios";
 import BaseOAuthProvider from "./base.js";
 import { OAuthClient } from "@avakado.ai/schemas";
+import { clientIdFromUserId, findActiveClient } from "../oauthService.js";
 
 const OAUTH_BASE = (process.env.AVAKADO_OAUTH_BASE || "https://app.avakado.ai").replace(/\/+$/, "");
 const AUTHORIZE_URL = `${OAUTH_BASE}/oauth/authorize`;
@@ -36,11 +37,31 @@ export default class OauthAvakado extends BaseOAuthProvider {
         if (redirectUris.length > 0) params.set("redirect_uri", redirectUris[0]);
         if (state) params.set("state", state);
         if (scopes.length) params.set("scope", scopes.join(","));
-        return { AuthUrl: `${AUTHORIZE_URL}?${params}` };
+        return {
+            ExpectedKeysFromQuery: {
+                type: "object",
+                required: ["client_secret"],
+                properties: {
+                    client_secret: { type: "string", description: "OAuth client secret shown when this client was created. It cannot be read back later." }
+                },
+                additionalProperties: false
+            },
+            AuthUrl: `${AUTHORIZE_URL}?${params}`
+        };
     }
 
-    async getTokens({ code, client_id, client_secret, redirect_uri } = {}) {
+    async getTokens({ code, client_id, client_secret, redirect_uri } = {}, context) {
+        const validation = this._validateStringParam(code, "code");
+        if (validation) return validation;
         try {
+            const userId = context?.user?._id;
+            if (!client_id && userId) client_id = clientIdFromUserId(userId);
+            const client = await findActiveClient(client_id);
+            if (!client) return this._errorResponse("invalid_client", "Unknown or revoked client", 401);
+            if (!redirect_uri) redirect_uri = client.redirectUris?.[0] || null;
+            if (!client_secret) return this._errorResponse("invalid_client", "Client secret is required. Pass the secret issued when this OAuth client was created.", 401);
+            if (!redirect_uri) return this._errorResponse("invalid_request", "redirect_uri is required", 400);
+
             const { data } = await axios.post(TOKEN_URL, formBody({ grant_type: "authorization_code", code, redirect_uri, client_id, client_secret }), { headers: { "Content-Type": "application/x-www-form-urlencoded" } });
             if (!data?.access_token) return this._errorResponse("malformed_response", "Avakado did not return an access token.", 502);
             const credentials = this._credentialsFromToken(data, { client_id, client_secret, redirect_uri });
