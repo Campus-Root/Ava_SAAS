@@ -257,7 +257,7 @@ export const authForGraphQL = async (req, res) => {
         const { data: user } = await AuthService.verifyDecodedToken(decoded);
         return { req, res, user, isAuthenticated: true, accessToken: token };
     } catch (error) {
-        console.error(error);
+        // console.error(error);
         throw new Error('Internal Server Error');
     }
 };
