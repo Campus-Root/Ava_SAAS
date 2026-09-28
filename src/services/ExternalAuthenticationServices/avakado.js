@@ -37,17 +37,7 @@ export default class OauthAvakado extends BaseOAuthProvider {
         if (redirectUris.length > 0) params.set("redirect_uri", redirectUris[0]);
         if (state) params.set("state", state);
         if (scopes.length) params.set("scope", scopes.join(","));
-        return {
-            ExpectedKeysFromQuery: {
-                type: "object",
-                required: ["client_secret"],
-                properties: {
-                    client_secret: { type: "string", description: "OAuth client secret shown when this client was created. It cannot be read back later." }
-                },
-                additionalProperties: false
-            },
-            AuthUrl: `${AUTHORIZE_URL}?${params}`
-        };
+        return { AuthUrl: `${AUTHORIZE_URL}?${params}` };
     }
 
     async getTokens({ code, client_id, client_secret, redirect_uri } = {}, context) {
