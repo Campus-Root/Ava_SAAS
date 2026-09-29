@@ -30,7 +30,7 @@ export const actionResolvers = {
                 const action = await Action.findById(id);
                 if (!action) return { message: "Action not found" };
                 const AsyncFunction = Object.getPrototypeOf(async function () { }).constructor;
-                const mainFunction = new AsyncFunction("input", action.functionString);
+                const mainFunction = new AsyncFunction("runtime", action.functionString);
                 const result = await mainFunction(input);
                 return { message: "Action tested successfully", result };
             } catch (error) {
