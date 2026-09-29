@@ -1,4 +1,4 @@
-import { User } from '@avakado.ai/schemas';
+import { Plan, User } from '@avakado.ai/schemas';
 import { Business } from '@avakado.ai/schemas';
 import bcrypt from 'bcryptjs';
 import {
@@ -42,6 +42,7 @@ export const userResolvers = {
             if (projection.business) {
                 await Business.populate(user, { path: 'business' });
                 await Subscription.populate(user, { path: 'business.credits.currentSubscription' });
+                await Plan.populate(user, { path: 'business.credits.currentSubscription.plan' });
             }
             return user
         },
