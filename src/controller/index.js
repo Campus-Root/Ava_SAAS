@@ -20,7 +20,7 @@ builtInRoutes.get('/exotel-redirect', async (request, reply) => {
     let { channelId, CallSid, CallFrom, CallTo, Direction, CustomField = "{}" } = request.query;
     if (!channelId && Direction === 'incoming') {
         const { number } = normalizePhoneNumber(CallTo)
-        let channel = await Channel.findOne({ "config.exotel.exophone": number });
+        let channel = await Channel.findOne({ "config.exophone": number });
         if (!channel) {
             console.error("❌", "Channel not found");
             return reply.status(404).send('Channel not found');
