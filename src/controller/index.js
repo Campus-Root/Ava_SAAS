@@ -16,8 +16,16 @@ builtInRoutes.use('/lead', leadRoutes);
 builtInRoutes.use('/conversation', conversationRoutes);
 builtInRoutes.use('/campaign', campaignRoutes);
 builtInRoutes.get('/exotel-redirect', async (request, reply) => {
-    const { channelId, CallSid, CallFrom, CallTo, Direction, CustomField = "{}" } = request.query;
-    // console.log(JSON.stringify({ query: request.query }, null, 2))
+    let { channelId, CallSid, CallFrom, CallTo, Direction, CustomField = "{}" } = request.query;
+    if (!channelId && Direction === 'incoming') {
+        const { number } = normalizePhoneNumber(CallTo)
+        let channel = await Channel.findOne({ "config.exotel.exophone": number });
+        if (!channel) {
+            console.error("❌", "Channel not found");
+            return reply.status(404).send('Channel not found');
+        }
+        channelId = channel._id;
+    }
     const agent = await AgentModel.findOne({ channels: channelId }).populate("business actions");
     if (!agent) {
         console.error("❌", "Agent not found");
