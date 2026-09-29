@@ -10,6 +10,7 @@ import { Conversation } from '@avakado.ai/schemas';
 import { leadRoutes } from './leadsRouter.js';
 import { conversationRoutes } from './conversationRouter.js';
 import { campaignRoutes } from './campaignRouter.js';
+import { normalizePhoneNumber } from '../utils/setup.js';
 export const builtInRoutes = Router();
 builtInRoutes.get('/', (_, res) => res.status(200).send('Server running'));
 builtInRoutes.use('/lead', leadRoutes);
