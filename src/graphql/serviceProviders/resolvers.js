@@ -104,13 +104,13 @@ export const serviceProvidersResolvers = {
         deleteProvider: async (_, { id }) => {
             return await Providers.findByIdAndDelete(id);
         },
-        createAuthStrategy: async (_, { apiId, state = "" }, context) => {
+        createAuthStrategy: async (_, { apiId, state = "", misc = {} }, context) => {
             const api = await Api.findById(apiId).populate('provider');
             if (!api) throw new GraphQLError("Api not found", { extensions: { code: 'INVALID_INPUT' } });
             const providerService = PROVIDER_MAP[api.provider.name];
             if (!providerService) throw new GraphQLError("Provider not found", { extensions: { code: 'INVALID_INPUT' } });
             const scopes = [...new Set([...(api.provider.basicScopes || []), ...(api.requiredScopes || [])])];
-            const { ExpectedKeysFromQuery = null, AuthUrl, error = null } = await providerService.getAuthUrl({ state, scopes, context });
+            const { ExpectedKeysFromQuery = null, AuthUrl, error = null } = await providerService.getAuthUrl({ state, scopes, context, misc });
             if (error) throw new GraphQLError(error.message, { extensions: { code: error.code } });
             let authStrategy = { authType: api.schemas.auth, authUrl: AuthUrl, scopes: scopes, providerId: api.provider._id, misc: { requiredKeysFromQuery: ExpectedKeysFromQuery } }
             return authStrategy;

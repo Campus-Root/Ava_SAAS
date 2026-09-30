@@ -287,15 +287,6 @@ export const AssistantResponse = async (req, res, config) => {
     }
     return { responseTokens, response, signalDetected }
 }
-// export const createAnOpenAiApiKey = async (name) => {
-//     try {
-//         const { data } = await axios.post("https://api.openai.com/v1/organization/admin_api_keys", { name }, { headers: { 'Authorization': `Bearer ${process.env.OPEN_API_ADMIN_KEY}`, 'Content-Type': 'application/json' } })
-//         return { apiKey: data.value, name: data.name, id: data.id, redacted_value: data.redacted_value, created_at: data.created_at }
-//     } catch (error) {
-//         console.log(error);
-//         throw new Error("Error occurred while creating openAi api key");
-//     }
-// }
 export const OpenAiLLM = async ({ input = [], model = "gpt-4o-mini", text = {} }) => {
     try {
         const response = await openai.responses.parse({
