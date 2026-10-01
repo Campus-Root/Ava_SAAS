@@ -5,6 +5,7 @@ import { AgentModel } from '@avakado.ai/schemas';
 import { exotelMediaStreamUrl, getCallSessionForIncomingCall, getCallSessionForOutboundDial } from '../utils/CallSessions.js';
 import { contactUsValidation } from '../services/contactUs.js';
 import { Channel } from '@avakado.ai/schemas';
+import { CallSession } from '@avakado.ai/schemas';
 import { Lead } from '@avakado.ai/schemas';
 import { Conversation } from '@avakado.ai/schemas';
 import { leadRoutes } from './leadsRouter.js';
@@ -26,6 +27,15 @@ builtInRoutes.get('/exotel-redirect', async (request, reply) => {
             return reply.status(404).send('Channel not found');
         }
         channelId = channel._id;
+    }
+    if (!channelId && Direction === 'outbound-dial') {
+        const { callSession, campaign, business } = JSON.parse(CustomField);
+        let callSessionData = await CallSession.findById(callSession)
+        if (!callSession) {
+            console.error("❌", "Call session not found");
+            return reply.status(404).send('Call session not found');
+        }
+        channelId = callSessionData.channel;
     }
     const agent = await AgentModel.findOne({ channels: channelId }).populate("business actions");
     if (!agent) {
