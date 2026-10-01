@@ -185,8 +185,9 @@ type Mutation {
   @param key - The key to upload the file to"""
   getUploadUrl(key: String!): String @requireScope(scope: "collection:upload_files") @requireBusinessAccess
   """Get a download URL
-  @param key - The key to download the file from"""
-  getDownloadUrl(key: String!): String @requireScope(scope: "file:download") @requireBusinessAccess
+  @param key - The key to download the file from
+  @param neverExpire - When true, the signed URL lasts 7 days, the longest R2 allows. Otherwise it lasts 10 minutes."""
+  getDownloadUrl(key: String!, neverExpire: Boolean): String @requireScope(scope: "file:download") @requireBusinessAccess
   """Delete an uploaded file from storage
   @param key - The key of the file to delete"""
   deleteUploadedFileFromStorage(key: String!): Boolean @requireScope(scope: "file:delete") @requireBusinessAccess

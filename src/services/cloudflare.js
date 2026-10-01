@@ -118,10 +118,12 @@ class CloudflareIntegration {
             throw error;
         }
     }
-    async generateDownloadURL(input = {}) {
+    async generateDownloadURL(input = {}, { expiresIn = 600 } = {}) {
         try {
             const command = new GetObjectCommand(input);
-            const url = await getSignedUrl(this.s3Client, command, { expiresIn: 600 }); // 600 seconds = 10 minutes
+            // R2 signed URLs cannot outlive 7 days.
+            const lifetime = Math.min(Math.max(Number(expiresIn) || 600, 1), 60 * 60 * 24 * 7);
+            const url = await getSignedUrl(this.s3Client, command, { expiresIn: lifetime });
             return url;
         }
         catch (error) {

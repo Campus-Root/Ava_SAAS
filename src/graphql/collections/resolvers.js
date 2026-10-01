@@ -83,8 +83,11 @@ export const collectionResolvers = {
             const uploadUrl = await cloudflareIntegration.createTemporaryUploadURL({ Bucket: "ava-client-documents", Key: context.user.business.toString() + "/" + key });
             return uploadUrl;
         },
-        getDownloadUrl: async (_, { key = "" }, context, info) => {
-            const downloadUrl = await cloudflareIntegration.generateDownloadURL({ Bucket: "ava-client-documents", Key: context.user.business.toString() + "/" + key });
+        getDownloadUrl: async (_, { key = "", neverExpire = false }, context, info) => {
+            const downloadUrl = await cloudflareIntegration.generateDownloadURL(
+                { Bucket: "ava-client-documents", Key: context.user.business.toString() + "/" + key },
+                { expiresIn: neverExpire ? 60 * 60 * 24 * 7 : 600 },
+            );
             return downloadUrl;
         },
         deleteUploadedFileFromStorage: async (_, { key = "" }, context, info) => {
