@@ -76,8 +76,7 @@ export const jobResolvers = {
                 case "Whatsapp": {
                     if (!channel.config.phone_number_id) throw new GraphQLError("phone_number_id is required");
                     if (!channel.apiAuthenticator) throw new GraphQLError("apiAuthenticator is required");
-                    const { template: { name: templateName, language: languageCode }, config: parametersMap } = config;
-                    console.log({ templateName, languageCode, parametersMap });
+                    const { template: { templateName, languageCode, parametersMap } } = config;
                     if (!templateName || !languageCode) throw new GraphQLError("templateName, languageCode are required");
                     // stack all lead errors and return them in a single array
                     for (const leadId of leadIds) {
@@ -154,8 +153,7 @@ export const jobResolvers = {
             const newCampaign = await Campaign.create({ name, business: context.user.business, channel: channelId, leads: leadIds, config, status: "pending", timeLines: { scheduledAt: new Date(scheduledAt), startedAt: null, completedAt: null, cancelledAt: null }, cancel_requested: false, createdBy: context.user._id, });
             switch (channel.provider.name) {
                 case "Whatsapp": {
-                    const { template: { name: templateName, language: languageCode }, config: parametersMap } = config;
-                    console.log({ templateName, languageCode, parametersMap });
+                    const { template: { templateName, languageCode, parametersMap } } = config;
                     if (!templateName || !languageCode) {
                         await newCampaign.deleteOne();
                         throw new GraphQLError("templateName, languageCode are required");
