@@ -76,7 +76,8 @@ export const jobResolvers = {
                 case "Whatsapp": {
                     if (!channel.config.phone_number_id) throw new GraphQLError("phone_number_id is required");
                     if (!channel.apiAuthenticator) throw new GraphQLError("apiAuthenticator is required");
-                    const { template: { templateName, languageCode, parametersMap = [] } } = config;
+                    const { template: { name: templateName, language: languageCode }, config: parametersMap } = config;
+                    console.log({ templateName, languageCode, parametersMap });
                     if (!templateName || !languageCode) throw new GraphQLError("templateName, languageCode are required");
                     // stack all lead errors and return them in a single array
                     for (const leadId of leadIds) {
@@ -154,7 +155,6 @@ export const jobResolvers = {
             switch (channel.provider.name) {
                 case "Whatsapp": {
                     const { template: { name: templateName, language: languageCode }, config: parametersMap } = config;
-                    console.log({ templateName, languageCode, parametersMap });
                     if (!templateName || !languageCode) {
                         await newCampaign.deleteOne();
                         throw new GraphQLError("templateName, languageCode are required");
