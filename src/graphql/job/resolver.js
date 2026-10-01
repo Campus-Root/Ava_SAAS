@@ -155,6 +155,7 @@ export const jobResolvers = {
             switch (channel.provider.name) {
                 case "Whatsapp": {
                     const { template: { name: templateName, language: languageCode }, config: parametersMap } = config;
+                    console.log({ templateName, languageCode, parametersMap });
                     if (!templateName || !languageCode) {
                         await newCampaign.deleteOne();
                         throw new GraphQLError("templateName, languageCode are required");
