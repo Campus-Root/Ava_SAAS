@@ -167,6 +167,7 @@ type LeadFacets {
   status: [FacetOption]
   origin: [FacetOption]
   template: [FacetOption]
+  tags: [FacetOption]
 }
 
   # ─── Queries ─────────────────────────────────────────────────────────────────
