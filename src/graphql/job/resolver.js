@@ -153,7 +153,9 @@ export const jobResolvers = {
             const newCampaign = await Campaign.create({ name, business: context.user.business, channel: channelId, leads: leadIds, config, status: "pending", timeLines: { scheduledAt: new Date(scheduledAt), startedAt: null, completedAt: null, cancelledAt: null }, cancel_requested: false, createdBy: context.user._id, });
             switch (channel.provider.name) {
                 case "Whatsapp": {
-                    const { template: { templateName, languageCode, parametersMap = [] } } = config;
+                    const { template, config: parametersMap } = config;
+                    let templateName = template.name;
+                    let languageCode = template.language;
                     if (!templateName || !languageCode) {
                         await newCampaign.deleteOne();
                         throw new GraphQLError("templateName, languageCode are required");
