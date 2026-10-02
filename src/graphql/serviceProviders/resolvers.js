@@ -8,7 +8,7 @@ import { evaluateData, serializeBody } from "./helpers.js";
 import axios from "axios";
 export const serviceProvidersResolvers = {
     Query: {
-        fetchProviders: async (_, { name, description, _id, page = 1, limit = 10, sort = {} }, context) => {
+        fetchProviders: async (_, { name, description, _id, page = 1, limit = 10, sort = { updatedAt: -1 } }, context) => {
             const filter = {};
             if (name) filter.name = { $regex: name, $options: 'i' };
             if (description) filter.description = { $regex: description, $options: 'i' };

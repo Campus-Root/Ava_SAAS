@@ -6,7 +6,7 @@ import { Business } from "@avakado.ai/schemas";
 
 export const actionResolvers = {
     Query: {
-        actions: async (_, { limit = 10, page = 1, id, sort = {} }, context, info) => {
+        actions: async (_, { limit = 10, page = 1, id, sort = { updatedAt: -1 } }, context, info) => {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { rootFields, populateFields } = getSelectFields(requestedFields.data);
             const filter = { business: context.user.business };

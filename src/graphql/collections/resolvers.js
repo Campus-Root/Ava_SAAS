@@ -4,7 +4,7 @@ import { flattenFields, getSelectFields } from '../../utils/graphqlTools.js';
 import { cloudflareIntegration } from '../../services/cloudflare.js';
 export const collectionResolvers = {
     Query: {
-        collections: async (_, { limit = 10, page = 1, id, isPublic, sort = {} }, context, info) => {
+        collections: async (_, { limit = 10, page = 1, id, isPublic, sort = { updatedAt: -1 } }, context, info) => {
             const filter = {};
             filter.business = context.user.business;
             if (id) filter._id = id;

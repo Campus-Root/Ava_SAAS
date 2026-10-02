@@ -13,7 +13,7 @@ import { Providers } from '@avakado.ai/schemas';
 import { PROVIDER_MAP } from '../../utils/setup.js';
 export const channelResolvers = {
     Query: {
-        async getChannels(_, { limit = 10, page = 1, id, provider, apiAuthenticator, status, type, sort = {} }, context, info) {
+        async getChannels(_, { limit = 10, page = 1, id, provider, apiAuthenticator, status, type, sort = { updatedAt: -1 } }, context, info) {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { rootFields, populateFields } = getSelectFields(requestedFields.data);
             const filter = { business: context.user.business };

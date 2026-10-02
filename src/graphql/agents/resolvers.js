@@ -13,7 +13,7 @@ import { Workflow } from '@avakado.ai/schemas';
 import { DemonstrationModel } from '@avakado.ai/schemas';
 export const agentResolvers = {
     Query: {
-        agents: async (_, { limit = 10, page = 1, isPublic, isFeatured, runtime, provider, id, sort = {} }, context, info) => {
+        agents: async (_, { limit = 10, page = 1, isPublic, isFeatured, runtime, provider, id, sort = { updatedAt: -1 } }, context, info) => {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { rootFields, populateFields } = getSelectFields(requestedFields.data);
             const filter = { business: context.user.business };

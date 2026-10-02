@@ -62,7 +62,7 @@ const scheduleResetCredits = async ({ idempotencyKey, name, body, runAt }) => {
 };
 export const paymentResolvers = {
     Query: {
-        async fetchPlans(_, { code, name, type, status, id, sort = {} }, context, info) {
+        async fetchPlans(_, { code, name, type, status, id, sort = { updatedAt: -1 } }, context, info) {
             const filter = { business: context.user.business };
             if (id) filter._id = id;
             if (code) filter.code = code;
@@ -73,7 +73,7 @@ export const paymentResolvers = {
             await populateAllowedTopUps(plans, info);
             return plans;
         },
-        async fetchPublicPlans(_, { code, name, id, status = "active", type, sort = {} }, context, info) {
+        async fetchPublicPlans(_, { code, name, id, status = "active", type, sort = { updatedAt: -1 } }, context, info) {
             const filter = { public: true };
             if (id) filter._id = id;
             if (code) filter.code = code;
@@ -84,7 +84,7 @@ export const paymentResolvers = {
             await populateAllowedTopUps(plans, info);
             return plans;
         },
-        async subscriptionHistory(_, { page = 1, limit = 10, id, planId, status, startedAt, endedAt, cancelledAt, sort = {} }, context, info) {
+        async subscriptionHistory(_, { page = 1, limit = 10, id, planId, status, startedAt, endedAt, cancelledAt, sort = { updatedAt: -1 } }, context, info) {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { rootFields, populateFields } = getSelectFields(requestedFields.data);
             let filter = { business: context.user.business };

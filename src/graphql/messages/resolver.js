@@ -16,7 +16,7 @@ export const messageResolvers = {
   Query: {
     fetchMessages: async (
       _,
-      { conversationId, limit = 20, page = 1, sort = {} },
+      { conversationId, limit = 20, page = 1, sort = { createdAt: -1 } },
       context,
       info
     ) => {
@@ -71,7 +71,7 @@ export const messageResolvers = {
 
     fetchCallSessions: async (
       _,
-      { conversationId, ids = [], direction = [], externalCallSessionId = null, limit = 20, page = 1, sort = {} },
+      { conversationId, ids = [], direction = [], externalCallSessionId = null, limit = 20, page = 1, sort = { createdAt: -1 } },
       context,
       info
     ) => {

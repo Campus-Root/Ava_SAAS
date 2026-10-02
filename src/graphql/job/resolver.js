@@ -16,7 +16,7 @@ import { CallSession } from '@avakado.ai/schemas';
 import { campaignCronJobSpec } from "../../services/campaignEvents.js";
 export const jobResolvers = {
     Query: {
-        fetchCampaigns: async (_, { id, name, channelIds, leadIds, status, limit = 10, page = 1, sort = {} }, context, info) => {
+        fetchCampaigns: async (_, { id, name, channelIds, leadIds, status, limit = 10, page = 1, sort = { updatedAt: -1 } }, context, info) => {
             const filter = { business: context.user.business };
             if (id) filter._id = id;
             if (name) filter.name = { $regex: name, $options: "i" };
@@ -55,7 +55,7 @@ export const jobResolvers = {
             ]);
             return result;
         },
-        fetchTasks: async (_, { campaignId, status, limit = 10, page = 1, sort = {} }, context, info) => {
+        fetchTasks: async (_, { campaignId, status, limit = 10, page = 1, sort = { updatedAt: -1 } }, context, info) => {
             const filter = { business: context.user.business };
             if (campaignId) filter.campaign = campaignId;
             if (status) filter.status = status;

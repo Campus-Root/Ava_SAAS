@@ -7,7 +7,7 @@ import { Lead } from '@avakado.ai/schemas';
 import { GraphQLError } from "graphql";
 export const conversationResolvers = {
   Query: {
-    conversations: async (_, { limit = 10, page = 1, status, id, channelIds, campaignIds, agentIds, leadIds, from, to, priority, sort = {} }, context, info) => {
+    conversations: async (_, { limit = 10, page = 1, status, id, channelIds, campaignIds, agentIds, leadIds, from, to, priority, sort = { updatedAt: -1 } }, context, info) => {
       const skip = (page - 1) * limit;
       const filter = { business: context.user.business };
       if (id) filter._id = id;

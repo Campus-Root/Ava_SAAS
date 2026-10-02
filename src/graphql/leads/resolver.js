@@ -29,7 +29,7 @@ export const leadResolvers = {
   Query: {
     fetchleadsTemplates: async (
       _,
-      { limit = 10, page = 1, id, isActive, templateId: ID, sort = {} },
+      { limit = 10, page = 1, id, isActive, templateId: ID, sort = { updatedAt: -1 } },
       context,
       info
     ) => {
@@ -55,7 +55,7 @@ export const leadResolvers = {
       };
     },
 
-    fetchLeads: async (_, { limit = 10, page = 1, templateIds = [], tags = [], identifier, ids = [], status = [], origin = [], sort = {} }, context, info) => {
+    fetchLeads: async (_, { limit = 10, page = 1, templateIds = [], tags = [], identifier, ids = [], status = [], origin = [], sort = { updatedAt: -1 } }, context, info) => {
       const filter = { business: context.user.business };
       if (ids.length > 0) filter._id = { $in: ids.map(id => new mongoose.Types.ObjectId(id)) };
       if (templateIds.length > 0) filter.template = { $in: templateIds.map(id => new mongoose.Types.ObjectId(id)) };

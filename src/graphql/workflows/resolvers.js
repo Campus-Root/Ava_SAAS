@@ -5,14 +5,14 @@ import { GraphQLError } from "graphql";
 
 export const workflowResolvers = {
     Query: {
-        async fetchTriggerTemplates(_, { limit = 10, page = 1, name, sort = {} }, context, info) {
+        async fetchTriggerTemplates(_, { limit = 10, page = 1, name, sort = { updatedAt: -1 } }, context, info) {
             const filter = {};
             if (name) filter.name = { $regex: name, $options: "i" };
             const triggerTemplates = await TriggerTemplate.find(filter).sort(sort).skip((page - 1) * limit).limit(limit);
             const totalDocuments = await TriggerTemplate.countDocuments(filter);
             return { data: triggerTemplates, metaData: { page, limit, totalPages: Math.ceil(totalDocuments / limit), totalDocuments } };
         },
-        async fetchWorkflows(_, { id, trigger, status, limit = 10, page = 1, sort = {} }, context, info) {
+        async fetchWorkflows(_, { id, trigger, status, limit = 10, page = 1, sort = { updatedAt: -1 } }, context, info) {
             const filter = { business: context.user.business };
             if (id) filter._id = id;
             if (trigger) filter.trigger = trigger;
