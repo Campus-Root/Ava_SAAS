@@ -225,7 +225,7 @@ export const leadResolvers = {
       switch (channel.apiAuthenticator.provider.name) {
         case "Whatsapp": {
           let toId = null, topic = null, platformMeta = null;
-          let type, data, content;
+          let type, data, content, template;
           topic = 'sending-whatsapp-message'
           const { whatsapp } = lead.contactDetails;
           toId = whatsapp?.find(entry => entry.isPrimary)?.handle ?? whatsapp?.[0]?.handle;
@@ -242,8 +242,8 @@ export const leadResolvers = {
           };
           switch (action) {
             case "sendMessage":
-              ({ type, data } = message) ?? {};
-              content = data;
+              ({ type, data, template } = message) ?? {};
+              content = (type === 'template') ? constructWhatsappMessageFromTemplate(template, data) : data
               break;
             case "sendMedia":
               if (!file) throw new GraphQLError("No file provided", { extensions: { code: "BAD_REQUEST" } });

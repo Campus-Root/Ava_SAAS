@@ -8,6 +8,7 @@ import { documentTypes } from '../utils/graphqlTools.js';
 import { normalizePhoneNumber } from '../utils/setup.js';
 import { uploadFileToWhatsApp } from '../utils/whatsapp-app-bootstrap.js';
 import { sessionMedia } from '../utils/CallSessions.js';
+import { constructWhatsappMessageFromTemplate } from '../graphql/job/helpers.js';
 
 const contactUpload = multer({
     storage: multer.memoryStorage(),
@@ -141,7 +142,8 @@ leadRoutes.post('/contact', authMiddleware, acceptContactBody, async (req, res) 
                 if (!message?.type) return res.status(400).json({ success: false, message: 'message.type is required' });
                 type = message.type;
                 data = message.data;
-                content = data;
+                let template = message.template;
+                content = (type === 'template') ? constructWhatsappMessageFromTemplate(template, data) : data
             } else if (action === 'sendMedia') {
                 if (!req.file) return res.status(400).json({ success: false, message: 'No file provided' });
                 const { buffer, mimetype, originalname } = req.file;

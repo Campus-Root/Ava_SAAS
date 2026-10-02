@@ -6,6 +6,7 @@ import { normalizePhoneNumber } from '../utils/setup.js';
 import { buildComponents } from '../utils/tools.js';
 import { campaignCronJobSpec } from '../services/campaignEvents.js';
 import { sessionMedia } from '../utils/CallSessions.js';
+import { constructWhatsappMessageFromTemplate } from '../graphql/job/helpers.js';
 
 export const campaignRoutes = Router();
 
@@ -66,13 +67,12 @@ campaignRoutes.post('/', authMiddleware, async (req, res) => {
         const tasks = [];
         switch (channel.provider.name) {
             case 'Whatsapp': {
-                const template = config?.template;
-                if (!template?.templateName || !template?.languageCode) {
+                const { template, runtime: { templateName, languageCode, parametersMap } } = config;
+                if (!templateName || !languageCode) {
                     await campaign.deleteOne();
                     campaign = null;
                     return res.status(400).json({ success: false, message: 'templateName and languageCode are required' });
                 }
-                const { templateName, languageCode, parametersMap = [] } = template;
                 for (const leadId of leadIds) {
                     const lead = await Lead.findById(leadId);
                     if (!lead) {
@@ -102,7 +102,7 @@ campaignRoutes.post('/', authMiddleware, async (req, res) => {
                         direction: 'outbound',
                         sender: { type: 'user', id: userId, name: userName, ref: userId, refModel: 'Users' },
                         type: 'template',
-                        content: { templateName, languageCode, components },
+                        content: constructWhatsappMessageFromTemplate(template, components),
                         statusTimeline: { scheduled: runAt },
                     });
                     tasks.push({
