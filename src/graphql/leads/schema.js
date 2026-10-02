@@ -195,6 +195,7 @@ type LeadFacets {
       status: [LeadStatusEnum]
       origin: [String]
       tags: [String]
+      sort: JSON
     ): LeadPagination @requireScope(scope: "lead:read") @requireBusinessAccess
 
     """Dry-run bulk create: checks DB + within-batch collisions, writes nothing"""
