@@ -4,6 +4,21 @@ import { CallSession } from '@avakado.ai/schemas';
 import { Lead } from '@avakado.ai/schemas';
 import { Conversation } from '@avakado.ai/schemas';
 import { AgentModel } from '@avakado.ai/schemas';
+import { Channel, negotiateCall } from '@avakado.ai/schemas';
+
+export function sessionMedia({ channelName, channelConfig, agent }) {
+    const media = negotiateCall({
+        channelName,
+        channelConfig,
+        provider: agent?.modelConfig?.provider,
+    });
+    return {
+        model: agent?.modelConfig?.model,
+        sampleRate: media.channel.rate,
+        voice: agent?.responseConfig?.audio?.output?.voice || agent?.responseConfig?.realtimeOutputConfig?.voice,
+        media,
+    };
+}
 export const normalizePhoneNumber = (rawNumber, defaultCountry = 'IN') => {
     if (!rawNumber) return null;
 
@@ -54,6 +69,7 @@ export const getCallSessionForIncomingCall = async ({ CallSid, CallTo, CallFrom,
         conversation = await Conversation.create({ business: businessId, channel: channelId, agent: agentId, externalConversationId: normalizePhoneNumber(CallFrom), lead: lead._id, status: "open" });
     }
     const agent = await AgentModel.findById(agentId);
+    const channel = await Channel.findById(channelId).populate("provider");
     const callSession = await CallSession.create({
         lead: lead._id,
         agent: agentId,
@@ -64,11 +80,11 @@ export const getCallSessionForIncomingCall = async ({ CallSid, CallTo, CallFrom,
         direction: Direction,
         statusTimeline: { initiatedAt: new Date(), ringingAt: new Date() },
         callDetails: {
-            session: {
-                model: agent.modelConfig.model,
-                sampleRate: 24000,
-                voice: agent.responseConfig?.audio?.output?.voice || agent.responseConfig?.realtimeOutputConfig?.voice,
-            }
+            session: sessionMedia({
+                channelName: channel?.provider?.name || "exotel",
+                channelConfig: channel?.config,
+                agent,
+            }),
         },
         sequenceOfEvents: [requestBody]
     });

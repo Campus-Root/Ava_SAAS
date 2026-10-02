@@ -7,6 +7,7 @@ import { sendKafkaMessage } from '../utils/kafka.js';
 import { documentTypes } from '../utils/graphqlTools.js';
 import { normalizePhoneNumber } from '../utils/setup.js';
 import { uploadFileToWhatsApp } from '../utils/whatsapp-app-bootstrap.js';
+import { sessionMedia } from '../utils/CallSessions.js';
 
 const contactUpload = multer({
     storage: multer.memoryStorage(),
@@ -227,11 +228,11 @@ leadRoutes.post('/contact', authMiddleware, acceptContactBody, async (req, res) 
                 direction: 'outbound-dial',
                 statusTimeline: { initiatedAt: new Date() },
                 callDetails: {
-                    session: {
-                        model: agentDetails?.modelConfig?.model,
-                        sampleRate: 24000,
-                        voice: agentDetails?.responseConfig?.audio?.output?.voice || agentDetails?.responseConfig?.realtimeOutputConfig?.voice,
-                    },
+                    session: sessionMedia({
+                        channelName: providerName,
+                        channelConfig: channel.config,
+                        agent: agentDetails,
+                    }),
                 },
             });
             const body = {

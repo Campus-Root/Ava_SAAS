@@ -15,6 +15,7 @@ import { AgentModel } from '@avakado.ai/schemas';
 import { CallSession } from '@avakado.ai/schemas';
 import { campaignCronJobSpec } from "../../services/campaignEvents.js";
 import { constructWhatsappMessageFromTemplate } from "./helpers.js";
+import { sessionMedia } from "../../utils/CallSessions.js";
 export const jobResolvers = {
     Query: {
         fetchCampaigns: async (_, { id, name, channelIds, leadIds, status, limit = 10, page = 1, sort = { updatedAt: -1 } }, context, info) => {
@@ -237,11 +238,11 @@ export const jobResolvers = {
                             direction: "outbound-dial",
                             statusTimeline: { scheduledAt: scheduledAt },
                             callDetails: {
-                                session: {
-                                    model: agentDetails?.modelConfig?.model,
-                                    sampleRate: 24000,
-                                    voice: agentDetails?.responseConfig?.audio?.output?.voice || agentDetails?.responseConfig.realtimeOutputConfig?.voice,
-                                }
+                                session: sessionMedia({
+                                    channelName: channel.provider.name,
+                                    channelConfig: channel.config,
+                                    agent: agentDetails,
+                                }),
                             },
                         });
                         tasks.push({

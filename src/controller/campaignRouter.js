@@ -5,6 +5,7 @@ import { sendKafkaMessage } from '../utils/kafka.js';
 import { normalizePhoneNumber } from '../utils/setup.js';
 import { buildComponents } from '../utils/tools.js';
 import { campaignCronJobSpec } from '../services/campaignEvents.js';
+import { sessionMedia } from '../utils/CallSessions.js';
 
 export const campaignRoutes = Router();
 
@@ -162,11 +163,11 @@ campaignRoutes.post('/', authMiddleware, async (req, res) => {
                         direction: 'outbound-dial',
                         statusTimeline: { scheduledAt: runAt },
                         callDetails: {
-                            session: {
-                                model: agentDetails?.modelConfig?.model,
-                                sampleRate: 24000,
-                                voice: agentDetails?.responseConfig?.audio?.output?.voice || agentDetails?.responseConfig?.realtimeOutputConfig?.voice,
-                            },
+                            session: sessionMedia({
+                                channelName: channel.provider.name,
+                                channelConfig: channel.config,
+                                agent: agentDetails,
+                            }),
                         },
                     });
                     tasks.push({

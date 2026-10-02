@@ -24,6 +24,7 @@ import { normalizePhoneNumber } from "../../utils/setup.js";
 import axios from "axios";
 import mongoose from "mongoose";
 import { CallSession } from '@avakado.ai/schemas';
+import { sessionMedia } from "../../utils/CallSessions.js";
 
 export const leadResolvers = {
   Query: {
@@ -340,11 +341,11 @@ export const leadResolvers = {
             direction: "outbound-dial",
             statusTimeline: { initiatedAt: new Date() },
             callDetails: {
-              session: {
-                model: agentDetails?.modelConfig?.model,
-                sampleRate: 24000,
-                voice: agentDetails?.responseConfig?.audio?.output?.voice || agentDetails?.responseConfig.realtimeOutputConfig?.voice,
-              }
+              session: sessionMedia({
+                channelName: channel.apiAuthenticator.provider.name,
+                channelConfig: channel.config,
+                agent: agentDetails,
+              }),
             }
           });
           let body = {
