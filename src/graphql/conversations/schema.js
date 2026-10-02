@@ -139,6 +139,7 @@ export const conversationTypeDefs = `#graphql
       leadIds: [ID]
       from: DateTime
       to: DateTime
+      sort: JSON
       disconnectReason: String
     ): ConversationPagination @requireScope(scope: "conversation:read") @requireBusinessAccess
   }

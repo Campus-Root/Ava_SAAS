@@ -13,7 +13,7 @@ import { Providers } from '@avakado.ai/schemas';
 import { PROVIDER_MAP } from '../../utils/setup.js';
 export const channelResolvers = {
     Query: {
-        async getChannels(_, { limit = 10, page = 1, id, provider, apiAuthenticator, status, type }, context, info) {
+        async getChannels(_, { limit = 10, page = 1, id, provider, apiAuthenticator, status, type, sort = {} }, context, info) {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { rootFields, populateFields } = getSelectFields(requestedFields.data);
             const filter = { business: context.user.business };
@@ -22,7 +22,7 @@ export const channelResolvers = {
             if (provider) filter.provider = provider;
             if (type) filter.type = type;
             if (apiAuthenticator) filter.apiAuthenticator = apiAuthenticator;
-            const channels = await Channel.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).select(rootFields);
+            const channels = await Channel.find(filter).sort(sort).skip((page - 1) * limit).limit(limit).select(rootFields);
             const totalDocuments = await Channel.countDocuments(filter);
             if (populateFields?.business) await Business.populate(channels, { path: 'business', select: populateFields.business });
             if (populateFields?.createdBy) await User.populate(channels, { path: 'createdBy', select: populateFields.createdBy });

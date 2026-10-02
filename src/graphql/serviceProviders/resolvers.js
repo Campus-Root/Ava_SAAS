@@ -8,12 +8,12 @@ import { evaluateData, serializeBody } from "./helpers.js";
 import axios from "axios";
 export const serviceProvidersResolvers = {
     Query: {
-        fetchProviders: async (_, { name, description, _id, page = 1, limit = 10 }, context) => {
+        fetchProviders: async (_, { name, description, _id, page = 1, limit = 10, sort = {} }, context) => {
             const filter = {};
             if (name) filter.name = { $regex: name, $options: 'i' };
             if (description) filter.description = { $regex: description, $options: 'i' };
             if (_id) filter._id = _id;
-            const providers = await Providers.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit);
+            const providers = await Providers.find(filter).sort(sort).skip((page - 1) * limit).limit(limit);
             const totalDocuments = await Providers.countDocuments(filter);
             return { data: providers, metaData: { page, limit, totalPages: Math.ceil(totalDocuments / limit), totalDocuments } };
         },

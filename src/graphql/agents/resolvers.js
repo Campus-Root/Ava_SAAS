@@ -13,7 +13,7 @@ import { Workflow } from '@avakado.ai/schemas';
 import { DemonstrationModel } from '@avakado.ai/schemas';
 export const agentResolvers = {
     Query: {
-        agents: async (_, { limit = 10, page = 1, isPublic, isFeatured, runtime, provider, id }, context, info) => {
+        agents: async (_, { limit = 10, page = 1, isPublic, isFeatured, runtime, provider, id, sort = {} }, context, info) => {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { rootFields, populateFields } = getSelectFields(requestedFields.data);
             const filter = { business: context.user.business };
@@ -22,7 +22,7 @@ export const agentResolvers = {
             if (runtime?.length) filter.runtime = { $in: runtime };
             if (provider?.length) filter['modelConfig.provider'] = { $in: provider };
             if (id !== undefined) filter._id = id;
-            const agents = await AgentModel.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).select(rootFields);
+            const agents = await AgentModel.find(filter).sort(sort).skip((page - 1) * limit).limit(limit).select(rootFields);
             const totalDocuments = await AgentModel.countDocuments(filter);
             if (populateFields?.workflow) await Workflow.populate(agents, { path: 'workflow', select: populateFields.workflow });
             if (populateFields?.business) await Business.populate(agents, { path: 'business', select: populateFields.business });

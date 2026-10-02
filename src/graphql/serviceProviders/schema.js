@@ -83,7 +83,7 @@ type AuthStrategy {
     misc: JSON
 }
 type Query {
-    fetchProviders(name: String, description: String, _id: ID, page: Int, limit: Int): ProviderPagination @requireScope(scope: "integration:read")
+    fetchProviders(name: String, description: String, _id: ID, page: Int, limit: Int sort: JSON): ProviderPagination @requireScope(scope: "integration:read")
     fetchApis(providers: [ID], providerName: String, title: String, description: String, version: String, _id: ID, page: Int, limit: Int, category: String, feature: String): ApiPagination @requireScope(scope: "integration:read")
     fetchApiAuthenticators(provider: ID, providerName: String, _id: ID, page: Int, limit: Int): ApiAuthenticatorPagination @requireScope(scope: "integration:read") @requireBusinessAccess
 }

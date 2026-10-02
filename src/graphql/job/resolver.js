@@ -16,7 +16,7 @@ import { CallSession } from '@avakado.ai/schemas';
 import { campaignCronJobSpec } from "../../services/campaignEvents.js";
 export const jobResolvers = {
     Query: {
-        fetchCampaigns: async (_, { id, name, channelIds, leadIds, status, limit = 10, page = 1 }, context, info) => {
+        fetchCampaigns: async (_, { id, name, channelIds, leadIds, status, limit = 10, page = 1, sort = {} }, context, info) => {
             const filter = { business: context.user.business };
             if (id) filter._id = id;
             if (name) filter.name = { $regex: name, $options: "i" };
@@ -25,7 +25,7 @@ export const jobResolvers = {
             if (status) filter.status = status;
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { rootFields, populateFields } = getSelectFields(requestedFields.data);
-            const campaigns = await Campaign.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).select(rootFields);
+            const campaigns = await Campaign.find(filter).sort(sort).skip((page - 1) * limit).limit(limit).select(rootFields);
             const totalDocuments = await Campaign.countDocuments(filter);
             if (populateFields?.business) await Business.populate(campaigns, { path: 'business', select: populateFields.business });
             if (populateFields?.leads) await Lead.populate(campaigns, { path: 'leads', select: populateFields.leads });
@@ -55,13 +55,13 @@ export const jobResolvers = {
             ]);
             return result;
         },
-        fetchTasks: async (_, { campaignId, status, limit = 10, page = 1 }, context, info) => {
+        fetchTasks: async (_, { campaignId, status, limit = 10, page = 1, sort = {} }, context, info) => {
             const filter = { business: context.user.business };
             if (campaignId) filter.campaign = campaignId;
             if (status) filter.status = status;
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { rootFields, populateFields } = getSelectFields(requestedFields.data);
-            const tasks = await Task.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).select(rootFields);
+            const tasks = await Task.find(filter).sort(sort).skip((page - 1) * limit).limit(limit).select(rootFields);
             const totalDocuments = await Task.countDocuments(filter);
             if (populateFields?.business) await Business.populate(tasks, { path: 'business', select: populateFields.business });
             if (populateFields?.campaign) await Campaign.populate(tasks, { path: 'campaign', select: populateFields.campaign });

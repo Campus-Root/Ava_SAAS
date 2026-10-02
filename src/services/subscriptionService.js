@@ -35,13 +35,13 @@ export const checkoutOrder = (order, amountRupees, currency = "INR") => ({
     shortUrl: null
 });
 
-export const supersedeCurrent = async (businessId, { reason, exceptId } = {}) => {
+export const supersedeCurrent = async (businessId, { reason, exceptId, sort = {} } = {}) => {
     const filter = {
         business: businessId,
         status: { $in: CURRENT_SUBSCRIPTION_STATUSES }
     };
     if (exceptId) filter._id = { $ne: exceptId };
-    const current = await Subscription.findOne(filter).sort({ createdAt: -1 });
+    const current = await Subscription.findOne(filter).sort(sort);
     if (!current) return null;
     if (current.gateway === "razorpay" && current.gatewaySubscriptionId) {
         try {

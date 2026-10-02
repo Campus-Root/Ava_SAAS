@@ -53,10 +53,10 @@ type Campaign {
         cancel_requested: [FacetOption]
     }
       type  Query {
-            fetchCampaigns(id: ID, name: String, channelIds: [ID], leadIds: [ID], status: String, limit: Int, page: Int): CampaignPagination
+            fetchCampaigns(id: ID, name: String, channelIds: [ID], leadIds: [ID], status: String, limit: Int, page: Int sort: JSON): CampaignPagination
             """ Distinct filter values + counts for the campaigns list UI """
             fetchCampaignFacets: CampaignFacets
-            fetchTasks(campaignId: ID, status: String, limit: Int, page: Int): TaskPagination
+            fetchTasks(campaignId: ID, status: String, limit: Int, page: Int sort: JSON): TaskPagination
             validateCampaign(channelId: ID, leadIds: [ID], config: JSON): Boolean
         }
        type Mutation {

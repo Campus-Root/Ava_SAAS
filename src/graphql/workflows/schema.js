@@ -25,8 +25,8 @@ export const workflowTypeDefs = `#graphql
         metaData: PaginationMetaData
     }
 type Query {
-    fetchTriggerTemplates(limit: Int, page: Int, name: String): TriggerTemplateList @requireScope(scope: "workflow:read") @requireBusinessAccess
-    fetchWorkflows(id: ID, trigger: String, status: String, limit: Int, page: Int): WorkflowList @requireScope(scope: "workflow:read") @requireBusinessAccess
+    fetchTriggerTemplates(limit: Int, page: Int, name: String sort: JSON): TriggerTemplateList @requireScope(scope: "workflow:read") @requireBusinessAccess
+    fetchWorkflows(id: ID, trigger: String, status: String, limit: Int, page: Int sort:JSON): WorkflowList @requireScope(scope: "workflow:read") @requireBusinessAccess
 }
 type Mutation {
     createWorkflow(name: String, trigger: String, task: JSON): Workflow @requireScope(scope: "workflow:create") @requireBusinessAccess

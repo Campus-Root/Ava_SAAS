@@ -164,6 +164,7 @@ kind: String
       runtime: [AgentRuntimeEnum]
       provider: [String]
       id: ID
+      sort: JSON
     ): AgentPagination @requireScope(scope: "agent:read") @requireBusinessAccess
 
     """ Distinct filter values + counts for the agents list UI """

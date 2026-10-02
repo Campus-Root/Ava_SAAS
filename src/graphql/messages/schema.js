@@ -185,6 +185,7 @@ export const messageTypeDefs = `#graphql
       conversationId: ID
       limit: Int
       page: Int
+      sort: JSON
     ): MessagePagination @requireScope(scope: "message:read") @requireBusinessAccess
 
     """
@@ -201,6 +202,7 @@ export const messageTypeDefs = `#graphql
       externalCallSessionId: String
       limit: Int
       page: Int
+      sort: JSON
     ): CallSessionPagination @requireScope(scope: "call:read") @requireBusinessAccess
 
     """

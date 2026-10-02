@@ -7,7 +7,7 @@ import { Lead } from '@avakado.ai/schemas';
 import { GraphQLError } from "graphql";
 export const conversationResolvers = {
   Query: {
-    conversations: async (_, { limit = 10, page = 1, status, id, channelIds, campaignIds, agentIds, leadIds, from, to, priority }, context, info) => {
+    conversations: async (_, { limit = 10, page = 1, status, id, channelIds, campaignIds, agentIds, leadIds, from, to, priority, sort = {} }, context, info) => {
       const skip = (page - 1) * limit;
       const filter = { business: context.user.business };
       if (id) filter._id = id;
@@ -24,7 +24,7 @@ export const conversationResolvers = {
       }
       const requestedFields = graphqlFields(info, {}, { processArguments: false });
       const { rootFields, populateFields } = getSelectFields(requestedFields.data);
-      const [conversations, totalDocuments] = await Promise.all([Conversation.find(filter).limit(limit).skip(skip).sort({ updatedAt: -1 }).select(rootFields), Conversation.countDocuments(filter),]);
+      const [conversations, totalDocuments] = await Promise.all([Conversation.find(filter).sort(sort).limit(limit).skip(skip).select(rootFields), Conversation.countDocuments(filter),]);
       if (populateFields?.agent)
         await AgentModel.populate(conversations, {
           path: "agent",

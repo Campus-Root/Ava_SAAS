@@ -62,29 +62,29 @@ const scheduleResetCredits = async ({ idempotencyKey, name, body, runAt }) => {
 };
 export const paymentResolvers = {
     Query: {
-        async fetchPlans(_, { code, name, type, status, id }, context, info) {
+        async fetchPlans(_, { code, name, type, status, id, sort = {} }, context, info) {
             const filter = { business: context.user.business };
             if (id) filter._id = id;
             if (code) filter.code = code;
             if (name) filter.name = { $regex: name, $options: "i" };
             if (status) filter.status = status;
             if (type) filter.type = type;
-            const plans = await Plan.find(filter).sort({ createdAt: -1 });
+            const plans = await Plan.find(filter).sort(sort);
             await populateAllowedTopUps(plans, info);
             return plans;
         },
-        async fetchPublicPlans(_, { code, name, id, status = "active", type }, context, info) {
+        async fetchPublicPlans(_, { code, name, id, status = "active", type, sort = {} }, context, info) {
             const filter = { public: true };
             if (id) filter._id = id;
             if (code) filter.code = code;
             if (name) filter.name = { $regex: name, $options: "i" };
             if (status) filter.status = status;
             if (type) filter.type = type;
-            const plans = await Plan.find(filter).sort({ createdAt: -1 });
+            const plans = await Plan.find(filter).sort(sort);
             await populateAllowedTopUps(plans, info);
             return plans;
         },
-        async subscriptionHistory(_, { page = 1, limit = 10, id, planId, status, startedAt, endedAt, cancelledAt }, context, info) {
+        async subscriptionHistory(_, { page = 1, limit = 10, id, planId, status, startedAt, endedAt, cancelledAt, sort = {} }, context, info) {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { rootFields, populateFields } = getSelectFields(requestedFields.data);
             let filter = { business: context.user.business };
@@ -94,7 +94,7 @@ export const paymentResolvers = {
             if (startedAt) filter.startedAt = { $gte: startedAt };
             if (endedAt) filter.endedAt = { $lte: endedAt };
             if (cancelledAt) filter.cancelledAt = { $lte: cancelledAt };
-            const subscriptions = await Subscription.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit);
+            const subscriptions = await Subscription.find(filter).sort(sort).skip((page - 1) * limit).limit(limit);
             if (populateFields?.plan) await Plan.populate(subscriptions, { path: "plan", select: populateFields.plan });
             if (populateFields?.pendingChange) await Subscription.populate(subscriptions, { path: "pendingChange.targetPlan", select: populateFields.pendingChange });
             const totalDocuments = await Subscription.countDocuments({ business: context.user.business });

@@ -16,7 +16,7 @@ export const messageResolvers = {
   Query: {
     fetchMessages: async (
       _,
-      { conversationId, limit = 20, page = 1 },
+      { conversationId, limit = 20, page = 1, sort = {} },
       context,
       info
     ) => {
@@ -29,7 +29,7 @@ export const messageResolvers = {
 
       const [messages, totalDocuments] = await Promise.all([
         Message.find(filter)
-          .sort({ createdAt: -1 })
+          .sort(sort)
           .skip(skip)
           .limit(limit)
           .select(rootFields),
@@ -71,7 +71,7 @@ export const messageResolvers = {
 
     fetchCallSessions: async (
       _,
-      { conversationId, ids = [], direction = [], externalCallSessionId = null, limit = 20, page = 1 },
+      { conversationId, ids = [], direction = [], externalCallSessionId = null, limit = 20, page = 1, sort = {} },
       context,
       info
     ) => {
@@ -86,7 +86,7 @@ export const messageResolvers = {
 
       const [callSessions, totalDocuments] = await Promise.all([
         CallSession.find(filter)
-          .sort({ createdAt: -1 })
+          .sort(sort)
           .skip(skip)
           .limit(limit)
           .select(rootFields),

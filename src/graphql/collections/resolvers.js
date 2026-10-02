@@ -4,14 +4,14 @@ import { flattenFields, getSelectFields } from '../../utils/graphqlTools.js';
 import { cloudflareIntegration } from '../../services/cloudflare.js';
 export const collectionResolvers = {
     Query: {
-        collections: async (_, { limit = 10, page = 1, id, isPublic }, context, info) => {
+        collections: async (_, { limit = 10, page = 1, id, isPublic, sort = {} }, context, info) => {
             const filter = {};
             filter.business = context.user.business;
             if (id) filter._id = id;
             if (isPublic !== undefined) filter.isPublic = isPublic;
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { rootFields, populateFields } = getSelectFields(requestedFields.data);
-            let collections = await Collection.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).select(rootFields);
+            let collections = await Collection.find(filter).sort(sort).skip((page - 1) * limit).limit(limit).select(rootFields);
             const totalDocuments = await Collection.countDocuments(filter);
             if (populateFields?.business) await Business.populate(collections, { path: 'business', select: populateFields.business });
             if (populateFields?.createdBy) await User.populate(collections, { path: 'createdBy', select: populateFields.createdBy });

@@ -29,7 +29,7 @@ export const leadResolvers = {
   Query: {
     fetchleadsTemplates: async (
       _,
-      { limit = 10, page = 1, id, isActive, templateId: ID },
+      { limit = 10, page = 1, id, isActive, templateId: ID, sort = {} },
       context,
       info
     ) => {
@@ -42,7 +42,7 @@ export const leadResolvers = {
 
       const [leadsTemplates, totalDocuments] = await Promise.all([
         LeadTemplate.find(filter)
-          .sort({ createdAt: -1 })
+          .sort(sort)
           .skip((page - 1) * limit)
           .limit(limit)
           .select(rootFields),
