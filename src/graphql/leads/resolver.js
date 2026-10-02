@@ -74,7 +74,7 @@ export const leadResolvers = {
         Lead.find(filter)
           .skip((page - 1) * limit)
           .limit(limit)
-          // .sort({ updatedAt: -1 })
+          .sort({ updatedAt: -1 })
           .select(rootFields),
         Lead.countDocuments(filter),
       ]);
