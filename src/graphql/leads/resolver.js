@@ -72,9 +72,9 @@ export const leadResolvers = {
       const { rootFields } = getSelectFields(requestedFields.data);
       const [leads, totalDocuments] = await Promise.all([
         Lead.find(filter)
-          .sort({ updatedAt: -1 })
           .skip((page - 1) * limit)
           .limit(limit)
+          // .sort({ updatedAt: -1 })
           .select(rootFields),
         Lead.countDocuments(filter),
       ]);
