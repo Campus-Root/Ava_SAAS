@@ -145,11 +145,11 @@ export const messageResolvers = {
       await message.deleteOne();
       return true;
     },
+    deleteCallSession: async (_, { id }, context) => {
+      const callSession = await CallSession.findById(id);
+      if (!callSession) throw new GraphQLError('Call session not found');
+      await callSession.deleteOne();
+      return true;
+    },
   },
-  deleteCallSession: async (_, { id }, context) => {
-    const callSession = await CallSession.findById(id);
-    if (!callSession) throw new GraphQLError('Call session not found');
-    await callSession.deleteOne();
-    return true;
-  }
 };
