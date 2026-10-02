@@ -1,8 +1,6 @@
-import { Conversation } from "@avakado.ai/schemas";
 import { getSelectFields } from "../../utils/graphqlTools.js";
 import graphqlFields from "graphql-fields";
-import { AgentModel } from '@avakado.ai/schemas';
-import { Channel } from '@avakado.ai/schemas';
+import { Channel, CallSession, Message, AgentModel, Conversation } from '@avakado.ai/schemas';
 import { Lead } from '@avakado.ai/schemas';
 import { GraphQLError } from "graphql";
 export const conversationResolvers = {
@@ -64,6 +62,14 @@ export const conversationResolvers = {
       conversation.config = { ...conversation.config, ...config };
       await conversation.save();
       return conversation;
+    },
+    deleteConversation: async (_, { id }, context) => {
+      const conversation = await Conversation.findById(id);
+      if (!conversation) throw new GraphQLError('Conversation not found');
+      await conversation.deleteOne();
+      await CallSession.deleteMany({ conversation: id });
+      await Message.deleteMany({ conversation: id });
+      return true;
     }
   }
 };

@@ -211,4 +211,8 @@ export const messageTypeDefs = `#graphql
     """
     fetchRecording(callSessionId: ID!): recordingResponse @requireScope(scope: "call:read") @requireBusinessAccess
   }
+  type Mutation {
+    deleteMessage(id: ID!): Boolean @requireScope(scope: "message:write") @requireBusinessAccess
+    deleteCallSession(id: ID!): Boolean @requireScope(scope: "call:write") @requireBusinessAccess
+  }
 `;

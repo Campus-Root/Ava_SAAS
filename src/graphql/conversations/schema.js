@@ -147,5 +147,6 @@ export const conversationTypeDefs = `#graphql
   type Mutation {
     updateConversationConfig(id: ID!, config: JSON): Conversation @requireScope(scope: "conversation:write") @requireBusinessAccess
     updateConversationStatus(id: ID!, status: ConversationStatusEnum!): Conversation @requireScope(scope: "conversation:write") @requireBusinessAccess
+    deleteConversation(id: ID!): Boolean @requireScope(scope: "conversation:write") @requireBusinessAccess
   }
 `;

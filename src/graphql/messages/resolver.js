@@ -138,4 +138,18 @@ export const messageResolvers = {
       return { url, headers };
     },
   },
+  Mutation: {
+    deleteMessage: async (_, { id }, context) => {
+      const message = await Message.findById(id);
+      if (!message) throw new GraphQLError('Message not found');
+      await message.deleteOne();
+      return true;
+    },
+  },
+  deleteCallSession: async (_, { id }, context) => {
+    const callSession = await CallSession.findById(id);
+    if (!callSession) throw new GraphQLError('Call session not found');
+    await callSession.deleteOne();
+    return true;
+  }
 };
