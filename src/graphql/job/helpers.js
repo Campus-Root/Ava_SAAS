@@ -19,14 +19,6 @@ const parameterText = (parameter) => {
     }
 };
 
-const valueFor = (parameters, name) => {
-    const named = parameters.find((item) => item.parameter_name != null && String(item.parameter_name) === String(name));
-    if (named) return parameterText(named);
-    const index = Number(name);
-    if (Number.isInteger(index) && index >= 1) return parameterText(parameters[index - 1]);
-    return undefined;
-};
-
 // Named parameters ({{first_name}}) match parameter_name, in any order.
 // Positional parameters ({{1}}) follow parameter order. parameter_name wins on the same token.
 const fillPlaceholders = (text, parameters = []) => {
@@ -55,16 +47,6 @@ const renderHeader = (part, parameters = []) => {
     const rendered = { type: part.type, format: part.format || "TEXT" };
     if (format === "TEXT" || !part.format) {
         rendered.text = fillPlaceholders(part.text, parameters);
-        if (part.example?.header_text_named_params) {
-            rendered.example = {
-                header_text_named_params: part.example.header_text_named_params.map((item) => ({
-                    param_name: item.param_name,
-                    example: valueFor(parameters, item.param_name) ?? item.example,
-                })),
-            };
-        } else if (part.example?.header_text) {
-            rendered.example = { header_text: [valueFor(parameters, "1") ?? part.example.header_text[0]] };
-        }
         return rendered;
     }
     if (format === "LOCATION") {
@@ -79,25 +61,22 @@ const renderHeader = (part, parameters = []) => {
     }
     const parameter = mediaParameter(parameters, format);
     const media = parameter?.[parameter?.type];
-    const handle = media?.link || media?.id;
-    rendered.example = { header_handle: [handle || part.example?.header_handle?.[0]].filter(Boolean) };
+    const url = media?.link || media?.id;
+    if (url) rendered[format.toLowerCase()] = url;
     if (media?.filename) rendered.filename = media.filename;
     return rendered;
 };
 
 const renderButton = (button, parameters = []) => {
     const type = String(button.type || "").toUpperCase();
-    const rendered = { ...button };
+    const { example, ...rest } = button;
+    const rendered = { ...rest };
     if (button.text) rendered.text = fillPlaceholders(button.text, parameters);
     if (button.url) rendered.url = fillPlaceholders(button.url, parameters);
-    if (type === "COPY_CODE" || type === "OTP") {
+    if (type === "COPY_CODE") {
         const code = parameters.find((item) => item.type === "coupon_code")?.coupon_code
             || parameters.find((item) => item.type === "text")?.text;
-        if (code) rendered.example = type === "OTP" ? button.example : code;
-        if (type === "OTP" && code) rendered.code = code;
-    } else if (Array.isArray(button.example)) {
-        const sample = parameterText(parameters.find((item) => item.type === "text"));
-        if (sample) rendered.example = [sample];
+        if (code) rendered.coupon_code = code;
     }
     const action = parameters.find((item) => item.type === "action")?.action;
     if (action) rendered.action = action;
@@ -117,16 +96,6 @@ const renderBody = (part, parameters = []) => {
     const rendered = { type: part.type };
     if (part.add_security_recommendation != null) rendered.add_security_recommendation = part.add_security_recommendation;
     rendered.text = part.text ? fillPlaceholders(part.text, parameters) : authenticationBody(part, parameters);
-    if (part.example?.body_text_named_params) {
-        rendered.example = {
-            body_text_named_params: part.example.body_text_named_params.map((item) => ({
-                param_name: item.param_name,
-                example: valueFor(parameters, item.param_name) ?? item.example,
-            })),
-        };
-    } else if (part.example?.body_text) {
-        rendered.example = { body_text: [parameters.map(parameterText)] };
-    }
     return rendered;
 };
 
