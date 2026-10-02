@@ -55,7 +55,7 @@ export const leadResolvers = {
       };
     },
 
-    fetchLeads: async (_, { limit = 10, page = 1, templateIds = [], tags = [], identifier, ids = [], status = [], origin = [] }, context, info) => {
+    fetchLeads: async (_, { limit = 10, page = 1, templateIds = [], tags = [], identifier, ids = [], status = [], origin = [], sort = {} }, context, info) => {
       const filter = { business: context.user.business };
       if (ids.length > 0) filter._id = { $in: ids.map(id => new mongoose.Types.ObjectId(id)) };
       if (templateIds.length > 0) filter.template = { $in: templateIds.map(id => new mongoose.Types.ObjectId(id)) };
@@ -74,7 +74,7 @@ export const leadResolvers = {
         Lead.find(filter)
           .skip((page - 1) * limit)
           .limit(limit)
-          .sort({ updatedAt: -1 })
+          .sort(sort)
           .select(rootFields),
         Lead.countDocuments(filter),
       ]);
