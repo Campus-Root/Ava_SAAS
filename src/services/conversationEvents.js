@@ -14,13 +14,6 @@ export function conversationStatusKafka({ conversationId, businessId, status }) 
     return events;
 }
 
-export function workflowTriggerMessages(trigger, conversationId) {
-    return (trigger?.workflows ?? []).map((workflowId) => ({
-        topic: 'workflow-execution-trigger',
-        key: String(workflowId),
-        value: { conversationId },
-    }));
-}
 
 export function humanHandoffSet({
     handoffReason = 'Lead explicitly asked for a human agent',
