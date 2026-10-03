@@ -183,6 +183,7 @@ export const messageTypeDefs = `#graphql
     """
     fetchMessages(
       conversationId: ID
+      ids: [ID]
       limit: Int
       page: Int
       sort: JSON

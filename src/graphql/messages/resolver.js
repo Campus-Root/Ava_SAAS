@@ -16,14 +16,14 @@ export const messageResolvers = {
   Query: {
     fetchMessages: async (
       _,
-      { conversationId, limit = 20, page = 1, sort = { createdAt: -1 } },
+      { conversationId, ids = [], limit = 20, page = 1, sort = { createdAt: -1 } },
       context,
       info
     ) => {
       const skip = (page - 1) * limit;
       const filter = { business: context.user.business };
       if (conversationId) filter.conversation = conversationId; // field is "conversation", not "conversationId"
-
+      if (ids.length > 0) filter._id = { $in: ids };
       const requestedFields = graphqlFields(info, {}, { processArguments: false });
       const { rootFields, populateFields } = getSelectFields(requestedFields.data);
 
