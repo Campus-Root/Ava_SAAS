@@ -5,9 +5,10 @@ import { GraphQLError } from "graphql";
 
 export const workflowResolvers = {
     Query: {
-        async fetchTriggerTemplates(_, { limit = 10, page = 1, name, sort = { updatedAt: -1 } }, context, info) {
+        async fetchTriggerTemplates(_, { limit = 10, page = 1, name, type, sort = { updatedAt: -1 } }, context, info) {
             const filter = {};
             if (name) filter.name = { $regex: name, $options: "i" };
+            if (type) filter.type = { $regex: type, $options: "i" };
             const triggerTemplates = await TriggerTemplate.find(filter).sort(sort).skip((page - 1) * limit).limit(limit);
             const totalDocuments = await TriggerTemplate.countDocuments(filter);
             return { data: triggerTemplates, metaData: { page, limit, totalPages: Math.ceil(totalDocuments / limit), totalDocuments } };
@@ -15,7 +16,7 @@ export const workflowResolvers = {
         async fetchWorkflows(_, { id, trigger, status, limit = 10, page = 1, sort = { updatedAt: -1 } }, context, info) {
             const filter = { business: context.user.business };
             if (id) filter._id = id;
-            if (trigger) filter.trigger = trigger;
+            if (trigger) filter.trigger = { $regex: trigger, $options: "i" };;
             if (status) filter.status = status;
             const workflows = await Workflow.find(filter).sort(sort).skip((page - 1) * limit).limit(limit);
             const totalDocuments = await Workflow.countDocuments(filter);
@@ -38,8 +39,11 @@ export const workflowResolvers = {
             await Workflow.findByIdAndDelete(id);
             return true;
         },
-        async testTask(_, { }, context, info) {
-
+        async testTask(_, { id, payload }, context, info) {
+            const workflow = await Workflow.findById(id);
+            if (!workflow) throw new GraphQLError("Workflow not found", { extensions: { code: "BAD_USER_INPUT" } });
+            const result = await workflow.execute(payload, { eventId: `test-event-${Date.now()}` });
+            return result;
         }
 
     }
