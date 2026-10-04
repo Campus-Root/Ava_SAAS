@@ -17,6 +17,7 @@ import {
     verifyAccessJwt,
     decodeExpiredAccessJwt,
     issueAccessFromRefreshCookie,
+    revokeAccessJti,
     revokeRefreshFamily,
     findActiveClient,
     clientIdFromUserId,
@@ -40,11 +41,15 @@ class AuthService {
             return { success: false, message: 'Error verifying tokens', data: { decoded: null } };
         }
     }
-    /** New access token when the bearer is expired and the dashboard refresh cookie is still valid. */
+    /** New access token when the bearer is expired and the dashboard refresh cookie is still valid. The presented token is then revoked. */
     async renewExpiredDashboardAccess(accessToken, refreshToken) {
         const decoded = await decodeExpiredAccessJwt(accessToken);
-        if (!decoded) return null;
-        return issueAccessFromRefreshCookie({ refreshToken, userId: decoded.id, clientId: decoded.cid });
+        if (!decoded?.jti) return null;
+        const renewed = await issueAccessFromRefreshCookie({ refreshToken, userId: decoded.id, clientId: decoded.cid });
+        if (!renewed) return null;
+        const blockUntil = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+        await revokeAccessJti(decoded.jti, blockUntil);
+        return renewed;
     }
     async verifyDecodedToken(decoded) {
         if (!decoded || !decoded.id) throw new GraphQLError('Invalid decoded token payload', { extensions: { code: 'UNAUTHENTICATED' } });

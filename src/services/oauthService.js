@@ -381,7 +381,7 @@ export async function decodeExpiredAccessJwt(accessToken) {
     } catch {
         return null;
     }
-    if (!decoded?.id || !decoded.cid || decoded.token_use === "sso") return null;
+    if (!decoded?.id || !decoded.cid || !decoded.jti || decoded.token_use === "sso") return null;
     if (!decoded.exp || decoded.exp * 1000 > Date.now()) return null;
     if (decoded.jti && await isJtiRevoked(decoded.jti)) return null;
     if (decoded.sv != null) {
