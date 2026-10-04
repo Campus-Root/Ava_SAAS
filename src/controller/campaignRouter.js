@@ -7,6 +7,7 @@ import { buildComponents } from '../utils/tools.js';
 import { campaignCronJobSpec } from '../services/campaignEvents.js';
 import { sessionMedia } from '../utils/CallSessions.js';
 import { constructWhatsappMessageFromTemplate } from '../graphql/job/helpers.js';
+import { buildDirectMessageTasks } from '../utils/messagingChannels.js';
 
 export const campaignRoutes = Router();
 
@@ -117,6 +118,20 @@ campaignRoutes.post('/', authMiddleware, async (req, res) => {
                         references: { type: 'Message', id: message?._id },
                     });
                 }
+                break;
+            }
+            case 'Telegram':
+            case 'Instagram': {
+                tasks.push(...await buildDirectMessageTasks({
+                    providerName: channel.provider.name,
+                    leadIds,
+                    channel,
+                    businessId: business,
+                    user: { _id: userId, name: userName },
+                    scheduledAt: runAt,
+                    runtime: config.runtime,
+                    campaignId: campaign._id,
+                }));
                 break;
             }
             case 'Exotel': {

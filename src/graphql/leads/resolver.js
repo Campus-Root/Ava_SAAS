@@ -1,5 +1,5 @@
 
-import { Lead, LeadTemplate } from '@avakado.ai/schemas';
+import { Lead, LeadTemplate, sessionChatClosed } from '@avakado.ai/schemas';
 import graphqlFields from "graphql-fields";
 import { documentTypes, getSelectFields } from "../../utils/graphqlTools.js";
 import { GraphQLError } from "graphql";
@@ -25,6 +25,7 @@ import axios from "axios";
 import mongoose from "mongoose";
 import { CallSession } from '@avakado.ai/schemas';
 import { sessionMedia } from "../../utils/CallSessions.js";
+import { contactDirectMessage } from "../../utils/messagingChannels.js";
 
 export const leadResolvers = {
   Query: {
@@ -267,6 +268,11 @@ export const leadResolvers = {
             default:
               break;
           }
+          if (action === 'sendMedia' || type !== 'template') {
+            if (sessionChatClosed(lead, 'whatsapp')) {
+              throw new GraphQLError('WhatsApp 24-hour chat window is closed. Use a template.', { extensions: { code: 'BAD_REQUEST' } });
+            }
+          }
           // create a message and conenct it to a conversation
           let conversation = null;
           // let CreateMessageSession = false;
@@ -317,6 +323,21 @@ export const leadResolvers = {
           // }
           await sendKafkaMessage({ topic, messages: [{ key: toId?.toString() ?? 'unknown', value: JSON.stringify({ operation: 'sendMessage', toId, platformMeta, type, data, messageId: result._id.toString() }), }] });
           await sendKafkaMessage({ topic: 'socket-event', messages: [{ key: conversation._id.toString(), value: JSON.stringify({ nameSpace: "CONVERSATION", roomId: conversation._id, event: "message.send", payload: result }) }] });
+          break;
+        }
+        case "Telegram":
+        case "Instagram": {
+          const sent = await contactDirectMessage({
+            providerName: channel.apiAuthenticator.provider.name,
+            lead,
+            channel,
+            conversationId,
+            message,
+            businessId: context.user.business,
+            user: context.user,
+          });
+          if (!sent.ok) throw new GraphQLError(sent.message, { extensions: { code: sent.status === 404 ? "NOT_FOUND" : "BAD_REQUEST" } });
+          result = sent.messageDoc;
           break;
         }
         case "Exotel": {

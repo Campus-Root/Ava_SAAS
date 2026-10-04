@@ -2,13 +2,14 @@ import { Router } from 'express';
 import multer from 'multer';
 import axios from 'axios';
 import { authMiddleware } from '../middleware/auth.js';
-import { AgentModel, CallSession, Channel, Conversation, Lead, Message, Providers } from '@avakado.ai/schemas';
+import { AgentModel, CallSession, Channel, Conversation, Lead, Message, Providers, sessionChatClosed } from '@avakado.ai/schemas';
 import { sendKafkaMessage } from '../utils/kafka.js';
 import { documentTypes } from '../utils/graphqlTools.js';
 import { normalizePhoneNumber } from '../utils/setup.js';
 import { uploadFileToWhatsApp } from '../utils/whatsapp-app-bootstrap.js';
 import { sessionMedia } from '../utils/CallSessions.js';
 import { constructWhatsappMessageFromTemplate } from '../graphql/job/helpers.js';
+import { contactDirectMessage } from '../utils/messagingChannels.js';
 
 const contactUpload = multer({
     storage: multer.memoryStorage(),
@@ -160,6 +161,11 @@ leadRoutes.post('/contact', authMiddleware, acceptContactBody, async (req, res) 
             } else {
                 return res.status(400).json({ success: false, message: 'action must be sendMessage or sendMedia for WhatsApp' });
             }
+            if (action === 'sendMedia' || type !== 'template') {
+                if (sessionChatClosed(lead, 'whatsapp')) {
+                    return res.status(400).json({ success: false, message: 'WhatsApp 24-hour chat window is closed. Use a template.' });
+                }
+            }
 
             let conversation = null;
             if (conversationId) {
@@ -201,6 +207,20 @@ leadRoutes.post('/contact', authMiddleware, acceptContactBody, async (req, res) 
                 messages: [{ key: conversation._id.toString(), value: JSON.stringify({ nameSpace: 'CONVERSATION', roomId: conversation._id, event: 'message.send', payload: result }) }],
             });
             return res.status(200).json({ success: true, message: 'Lead contacted successfully', data: result });
+        }
+
+        if (providerName === 'Telegram' || providerName === 'Instagram') {
+            const sent = await contactDirectMessage({
+                providerName,
+                lead,
+                channel,
+                conversationId,
+                message: parseMessageField(req.body.message),
+                businessId: business,
+                user: req.user,
+            });
+            if (!sent.ok) return res.status(sent.status).json({ success: false, message: sent.message });
+            return res.status(200).json({ success: true, message: 'Lead contacted successfully', data: sent.messageDoc });
         }
 
         if (providerName === 'Exotel') {

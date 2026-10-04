@@ -16,6 +16,17 @@ export const leadTypeDefs = `#graphql
     label: String
     isPrimary: Boolean
     metadata: JSON
+    """Session chat permission for this handle. validUntil null means open with no expiry."""
+    chat: ContactWindow
+    """Call permission for this handle. validUntil null means open with no expiry."""
+    call: ContactWindow
+  }
+
+  """Whether this handle may be contacted, and until when"""
+  type ContactWindow {
+    allowed: Boolean
+    """Null means allowed with no expiry"""
+    validUntil: DateTime
   }
 
   """All known contact handles for a lead, grouped by platform"""

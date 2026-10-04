@@ -16,6 +16,7 @@ import { CallSession } from '@avakado.ai/schemas';
 import { campaignCronJobSpec } from "../../services/campaignEvents.js";
 import { constructWhatsappMessageFromTemplate } from "./helpers.js";
 import { sessionMedia } from "../../utils/CallSessions.js";
+import { buildDirectMessageTasks, validateDirectMessageCampaign } from "../../utils/messagingChannels.js";
 export const jobResolvers = {
     Query: {
         fetchCampaigns: async (_, { id, name, channelIds, leadIds, status, limit = 10, page = 1, sort = { updatedAt: -1 } }, context, info) => {
@@ -101,6 +102,18 @@ export const jobResolvers = {
                             continue;
                         }
                     }
+                    break;
+                }
+                case "Telegram":
+                case "Instagram": {
+                    const checked = await validateDirectMessageCampaign({
+                        providerName: channel.provider.name,
+                        leadIds,
+                        channelId,
+                        runtime: config.runtime,
+                    });
+                    if (checked.fatal) throw new GraphQLError(checked.fatal);
+                    leadErrors.push(...checked.leadErrors);
                     break;
                 }
                 case "Exotel": {
@@ -206,6 +219,25 @@ export const jobResolvers = {
                             },
                             references: { type: "Message", id: message?._id }
                         });
+                    }
+                    break;
+                }
+                case "Telegram":
+                case "Instagram": {
+                    try {
+                        tasks.push(...await buildDirectMessageTasks({
+                            providerName: channel.provider.name,
+                            leadIds,
+                            channel,
+                            businessId: context.user.business,
+                            user: context.user,
+                            scheduledAt,
+                            runtime: config.runtime,
+                            campaignId: newCampaign._id,
+                        }));
+                    } catch (error) {
+                        await newCampaign.deleteOne();
+                        throw new GraphQLError(error.message);
                     }
                     break;
                 }
