@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Router } from 'express';
 import { sendMail } from '../utils/sendEmail.js';
 import { Ticket } from '@avakado.ai/schemas';
@@ -11,12 +14,19 @@ import { Conversation } from '@avakado.ai/schemas';
 import { leadRoutes } from './leadsRouter.js';
 import { conversationRoutes } from './conversationRouter.js';
 import { campaignRoutes } from './campaignRouter.js';
+import { providerRoutes } from './providerApis.js';
 import { normalizePhoneNumber } from '../utils/setup.js';
+const logViewHtml = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../views/logview.html'), 'utf8');
 export const builtInRoutes = Router();
 builtInRoutes.get('/', (_, res) => res.status(200).send('Server running'));
+builtInRoutes.get('/logview', (_req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.type('html').send(logViewHtml);
+});
 builtInRoutes.use('/lead', leadRoutes);
 builtInRoutes.use('/conversation', conversationRoutes);
 builtInRoutes.use('/campaign', campaignRoutes);
+builtInRoutes.use('/v1', providerRoutes);
 builtInRoutes.get('/exotel-redirect', async (request, reply) => {
     let { channelId, CallSid, CallFrom, CallTo, Direction, CustomField = "{}" } = request.query;
     if (!channelId && Direction === 'incoming') {

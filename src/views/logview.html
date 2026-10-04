@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Log view</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17241e;
+      --muted: #5d6d64;
+      --line: #e3ebe6;
+      --bg: #f3f6f4;
+      --card: #fff;
+      --live: #0e7a43;
+      --bad: #9f1c12;
+      --warn: #9a4d00;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 14px/1.45 ui-sans-serif, system-ui, sans-serif;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    #gate { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+    .card, .stat, .column, .filters, .banner {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+    .card { width: min(420px, 100%); padding: 24px; }
+    .card h1, .top h1 { margin: 0; font-size: 22px; letter-spacing: -0.02em; }
+    .lede { margin: 8px 0 0; color: var(--muted); }
+    form { display: grid; gap: 12px; margin-top: 18px; }
+    label { display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
+    input, select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+    }
+    .actions { display: flex; gap: 8px; align-items: center; }
+    button.solid, button.ghost {
+      border-radius: 999px;
+      padding: 8px 14px;
+    }
+    button.solid { background: #143028; color: white; border: 0; }
+    button.solid[aria-pressed="true"] { background: var(--warn); }
+    button.ghost { background: white; border: 1px solid var(--line); }
+    .form-error { margin: 0; color: var(--bad); }
+    .app { width: min(1280px, calc(100% - 32px)); margin: 0 auto; padding: 20px 0 32px; display: grid; gap: 12px; }
+    .top, .controls, .who, .tags, .title-row { display: flex; gap: 8px; align-items: center; }
+    .top { justify-content: space-between; align-items: flex-start; }
+    .who { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    .dot {
+      width: 8px; height: 8px; border-radius: 99px; background: var(--live);
+      box-shadow: 0 0 0 0 rgba(14, 122, 67, 0.6);
+      animation: pulse 1.6s infinite;
+    }
+    .dot.off { background: var(--warn); animation: none; box-shadow: none; }
+    @keyframes pulse {
+      70% { box-shadow: 0 0 0 6px rgba(14, 122, 67, 0); }
+    }
+    .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .stat { padding: 12px 14px; text-align: left; }
+    button.stat { cursor: pointer; }
+    button.stat:hover { border-color: #b7c9bf; }
+    .stat strong { display: block; font-size: 22px; letter-spacing: -0.03em; }
+    .stat span, .count, .meta, time { color: var(--muted); }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; align-items: end; }
+    .filters label { min-width: 120px; }
+    .filters label.search { flex: 1; min-width: 220px; }
+    .banner { padding: 10px 12px; color: var(--bad); background: #fde8e6; }
+    .board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
+    .column { min-height: 220px; display: flex; flex-direction: column; max-height: calc(100vh - 250px); }
+    .column header { padding: 12px 12px 8px; border-bottom: 1px solid var(--line); }
+    .column h2 { margin: 0; font-size: 15px; }
+    .count { margin: 2px 0 0; font-size: 12px; }
+    .rows { overflow: auto; }
+    .entry.is-new { animation: arrive 1.4s ease; }
+    @keyframes arrive { from { background: #e5f6ec; } }
+    .row {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 3px;
+      padding: 10px 12px;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      background: transparent;
+      text-align: left;
+    }
+    .row:hover { background: #f7faf8; }
+    .title { font-weight: 600; }
+    .badge {
+      border-radius: 999px;
+      padding: 1px 7px;
+      font-size: 11px;
+      font-weight: 600;
+      background: #eef1ef;
+      color: #3d4a44;
+    }
+    .badge[data-tone="bad"] { background: #fde8e6; color: var(--bad); }
+    .badge[data-tone="warn"] { background: #fff4e5; color: var(--warn); }
+    .badge[data-tone="good"] { background: #e5f6ec; color: #0d6b3d; }
+    .badge[data-tone="info"] { background: #e8f0fe; color: #1849a9; }
+    .detail { padding: 0 12px 12px; display: grid; gap: 8px; }
+    .detail p, .detail li { margin: 0; }
+    .steps { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+    pre {
+      margin: 0;
+      padding: 8px;
+      overflow: auto;
+      background: #f6f8f7;
+      border-radius: 8px;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .empty { margin: 0; padding: 16px 12px; color: var(--muted); }
+    .block-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    @media (max-width: 980px) {
+      .stats, .board { grid-template-columns: 1fr 1fr; }
+      .column { max-height: none; }
+    }
+    @media (max-width: 680px) {
+      .stats, .board, .top { grid-template-columns: 1fr; display: grid; }
+      .controls { flex-wrap: wrap; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .dot, .entry.is-new { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="gate">
+    <section class="card">
+      <h1>Log view</h1>
+      <p class="lede">Platform logs, credit usage, and workflow runs. The board refreshes every 5 seconds and can be paused.</p>
+      <form id="login-form">
+        <label>Email
+          <input id="email" name="email" type="email" autocomplete="username" required>
+        </label>
+        <label>Password
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </label>
+        <p id="form-error" class="form-error" hidden></p>
+        <div class="actions">
+          <button class="solid" type="submit">Sign in</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <main id="app" class="app" hidden>
+    <header class="top">
+      <div>
+        <h1>Log view</h1>
+        <p class="who" id="who"></p>
+        <p class="who"><span class="dot" id="dot"></span> <span id="live-status">Waiting for logs</span></p>
+      </div>
+      <div class="controls">
+        <button class="ghost" id="refresh" type="button">Refresh</button>
+        <button class="solid" id="pause" type="button" aria-pressed="false">Pause</button>
+        <button class="ghost" id="sign-out" type="button">Sign out</button>
+      </div>
+    </header>
+
+    <section class="stats" aria-label="Summary">
+      <button class="stat" id="stat-errors" type="button">
+        <strong id="errors">–</strong>
+        <span>Errors</span>
+      </button>
+      <button class="stat" id="stat-failed" type="button">
+        <strong id="failed-runs">–</strong>
+        <span id="failed-hint">Failed workflow runs</span>
+      </button>
+      <button class="stat" id="stat-running" type="button">
+        <strong id="running">–</strong>
+        <span>Workflows running</span>
+      </button>
+      <div class="stat">
+        <strong id="credits">–</strong>
+        <span>Credits out / in</span>
+      </div>
+    </section>
+
+    <div class="filters">
+      <label class="search">Search
+        <input id="search" type="search" placeholder="Message, event, note, workflow">
+      </label>
+      <label>Window
+        <select id="window">
+          <option value="15m">Last 15 minutes</option>
+          <option value="1h">Last hour</option>
+          <option value="24h" selected>Last 24 hours</option>
+          <option value="7d">Last 7 days</option>
+          <option value="all">All retained logs</option>
+        </select>
+      </label>
+      <label>Level
+        <select id="level">
+          <option value="">Any</option>
+          <option>warn</option>
+          <option>error</option>
+          <option>info</option>
+          <option>debug</option>
+        </select>
+      </label>
+      <label>Category
+        <select id="category">
+          <option value="">Any</option>
+          <option>AUTHENTICATION</option>
+          <option>PAYMENT</option>
+          <option>CREDIT</option>
+          <option>SUBSCRIPTION</option>
+          <option>API_ACCESS</option>
+          <option>WEBHOOK</option>
+          <option>ERROR</option>
+          <option>OTHER</option>
+        </select>
+      </label>
+      <label>Log status
+        <select id="log-status">
+          <option value="">Any</option>
+          <option>SUCCESS</option>
+          <option>FAILURE</option>
+          <option>PENDING</option>
+        </select>
+      </label>
+      <label>Service
+        <input id="service" type="text" placeholder="auth, billing…">
+      </label>
+      <label>Environment
+        <select id="environment">
+          <option value="">Any</option>
+          <option>dev</option>
+          <option>staging</option>
+          <option>prod</option>
+        </select>
+      </label>
+      <label>Usage
+        <select id="usage-direction">
+          <option value="">Any direction</option>
+          <option value="credit">credit</option>
+          <option value="debit">debit</option>
+          <option value="reset">reset</option>
+        </select>
+      </label>
+      <label>Usage status
+        <select id="usage-status">
+          <option value="">Any</option>
+          <option>posted</option>
+          <option>pending</option>
+          <option>failed</option>
+          <option>reversed</option>
+        </select>
+      </label>
+      <label>Workflow
+        <select id="workflow-status">
+          <option value="">Any status</option>
+          <option>running</option>
+          <option>completed</option>
+          <option>failed</option>
+        </select>
+      </label>
+      <label>Business
+        <input id="business" type="text" placeholder="Platform admins only" spellcheck="false">
+      </label>
+      <button class="ghost" id="clear" type="button">Clear</button>
+    </div>
+
+    <p id="banner" class="banner" hidden></p>
+
+    <div class="board">
+      <section class="column" aria-labelledby="logs-heading">
+        <header>
+          <h2 id="logs-heading">Platform logs</h2>
+          <p class="count" id="logs-count"></p>
+        </header>
+        <div class="rows" id="logs"></div>
+      </section>
+      <section class="column" aria-labelledby="usage-heading">
+        <header>
+          <h2 id="usage-heading">Usage</h2>
+          <p class="count" id="usage-count"></p>
+        </header>
+        <div class="rows" id="usage"></div>
+      </section>
+      <section class="column" aria-labelledby="workflows-heading">
+        <header>
+          <h2 id="workflows-heading">Workflow runs</h2>
+          <p class="count" id="workflows-count"></p>
+        </header>
+        <div class="rows" id="workflows"></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const INTERVAL_MS = 5000;
+    const SESSION_KEY = 'avakado.logview.session';
+    const WINDOWS = { '15m': 15 * 60 * 1000, '1h': 60 * 60 * 1000, '24h': 24 * 60 * 60 * 1000, '7d': 7 * 24 * 60 * 60 * 1000 };
+    const QUERY = `query fetchLogView($limit: Int, $search: String, $level: LogLevel, $category: LogCategory, $logStatus: LogStatus, $service: String, $environment: LogEnvironment, $usageDirection: UsageDirection, $usageStatus: UsageStatus, $workflowStatus: WorkflowRunStatus, $business: ID, $since: DateTime) {
+      fetchLogView(limit: $limit, search: $search, level: $level, category: $category, logStatus: $logStatus, service: $service, environment: $environment, usageDirection: $usageDirection, usageStatus: $usageStatus, workflowStatus: $workflowStatus, business: $business, since: $since) {
+        fetchedAt
+        summary { logs usageLogs workflowLogs errors failedLogs failedWorkflows runningWorkflows creditsDebited creditsCredited }
+        logs { data { _id level event category status message service environment requestId meta error createdAt business { _id name } } metaData { totalDocuments } }
+        usageLogs { data { _id direction credits status note idempotencyKey meta createdAt source { type id } business { _id name } } metaData { totalDocuments } }
+        workflowLogs { data { _id name trigger status summary executionId startedAt finishedAt createdAt error { message stack } steps { label type status summary error { message } startedAt finishedAt } business { _id name } } metaData { totalDocuments } }
+      }
+    }`;
+
+    const gate = document.querySelector('#gate');
+    const app = document.querySelector('#app');
+    const formError = document.querySelector('#form-error');
+    const pauseButton = document.querySelector('#pause');
+    const liveStatus = document.querySelector('#live-status');
+    const dot = document.querySelector('#dot');
+    const banner = document.querySelector('#banner');
+
+    let session = null;
+    let paused = false;
+    let pollTimer = null;
+    let nextAt = 0;
+    let inFlight = false;
+    let lastFetched = null;
+    let primed = false;
+    let searchTimer = null;
+    const seen = { logs: new Set(), usage: new Set(), workflows: new Set() };
+
+    const $ = (selector) => document.querySelector(selector);
+    const el = (tag, className, text) => {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text != null) node.textContent = text;
+      return node;
+    };
+
+    function readSession() {
+      try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); }
+      catch { return null; }
+    }
+
+    function showGate(message) {
+      app.hidden = true;
+      gate.hidden = false;
+      document.title = 'Log view';
+      if (message) {
+        formError.hidden = false;
+        formError.textContent = message;
+      }
+    }
+
+    function showApp() {
+      gate.hidden = true;
+      app.hidden = false;
+      const who = [session.email, session.role].filter(Boolean).join(' · ');
+      $('#who').textContent = who || 'Signed in';
+      syncPause();
+    }
+
+    function syncPause() {
+      pauseButton.setAttribute('aria-pressed', String(paused));
+      pauseButton.textContent = paused ? 'Resume' : 'Pause';
+      dot.classList.toggle('off', paused);
+      document.title = paused ? 'Paused · Log view' : 'Log view';
+      liveStatus.textContent = statusText();
+    }
+
+    function statusText() {
+      const stamp = lastFetched ? `Updated ${formatClock(lastFetched)}` : 'Waiting for logs';
+      if (paused) return `${stamp} · Paused`;
+      if (!nextAt) return stamp;
+      const seconds = Math.max(0, Math.ceil((nextAt - Date.now()) / 1000));
+      return `${stamp} · next update in ${seconds}s`;
+    }
+
+    function formatClock(value) {
+      return new Date(value).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    function ago(value) {
+      const delta = Date.now() - new Date(value).getTime();
+      if (!Number.isFinite(delta)) return '—';
+      const seconds = Math.max(0, Math.round(delta / 1000));
+      if (seconds < 60) return `${seconds}s ago`;
+      const minutes = Math.round(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.round(minutes / 60);
+      if (hours < 48) return `${hours}h ago`;
+      return `${Math.round(hours / 24)}d ago`;
+    }
+
+    function tone(value) {
+      const name = String(value || '').toLowerCase();
+      if (['error', 'failure', 'failed'].includes(name)) return 'bad';
+      if (['warn', 'pending', 'debit', 'reset'].includes(name)) return 'warn';
+      if (name === 'running') return 'info';
+      if (['info', 'success', 'completed', 'posted', 'credit'].includes(name)) return 'good';
+      return 'neutral';
+    }
+
+    function badge(value) {
+      if (!value) return null;
+      const node = el('span', 'badge', value);
+      node.dataset.tone = tone(value);
+      return node;
+    }
+
+    function amount(value) {
+      return Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    }
+
+    function duration(start, end) {
+      if (!start || !end) return '';
+      const ms = new Date(end) - new Date(start);
+      if (!Number.isFinite(ms) || ms < 0) return '';
+      if (ms < 1000) return `${ms}ms`;
+      if (ms < 10000) return `${(ms / 1000).toFixed(1)}s`;
+      return `${Math.round(ms / 1000)}s`;
+    }
+
+    function fieldValue(selector) {
+      return $(selector).value.trim();
+    }
+
+    function sinceValue() {
+      const selected = $('#window').value;
+      if (!WINDOWS[selected]) return null;
+      return new Date(Date.now() - WINDOWS[selected]).toISOString();
+    }
+
+    function variables() {
+      const raw = {
+        limit: 25,
+        search: fieldValue('#search'),
+        level: fieldValue('#level'),
+        category: fieldValue('#category'),
+        logStatus: fieldValue('#log-status'),
+        service: fieldValue('#service'),
+        environment: fieldValue('#environment'),
+        usageDirection: fieldValue('#usage-direction'),
+        usageStatus: fieldValue('#usage-status'),
+        workflowStatus: fieldValue('#workflow-status'),
+        business: fieldValue('#business'),
+        since: sinceValue(),
+      };
+      return Object.fromEntries(Object.entries(raw).filter(([, item]) => item != null && item !== ''));
+    }
+
+    function stopPoll() {
+      clearTimeout(pollTimer);
+      pollTimer = null;
+      nextAt = 0;
+    }
+
+    function schedule() {
+      stopPoll();
+      if (paused || !session?.token) return;
+      nextAt = Date.now() + INTERVAL_MS;
+      pollTimer = setTimeout(runPoll, INTERVAL_MS);
+      liveStatus.textContent = statusText();
+    }
+
+    async function runPoll() {
+      if (paused || !session?.token) return;
+      await refresh();
+      schedule();
+    }
+
+    async function kick() {
+      await refresh();
+      schedule();
+    }
+
+    function authFailure(error) {
+      const message = error?.message || '';
+      return error?.code === 'UNAUTHENTICATED' || /access token missing|authentication required|context creation failed|internal server error/i.test(message);
+    }
+
+    async function graphql(query, variables, operationName, token) {
+      let response;
+      try {
+        response = await fetch('/graphql', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ query, variables, operationName }),
+        });
+      } catch {
+        throw new Error("Can't reach the server.");
+      }
+      const body = await response.json().catch(() => { throw new Error('The server returned an unreadable response.'); });
+      if (body.errors?.length) {
+        const error = new Error(body.errors.map((item) => item.message).filter(Boolean).join(' '));
+        error.code = body.errors[0]?.extensions?.code || '';
+        throw error;
+      }
+      return body.data;
+    }
+
+    function setBanner(message) {
+      banner.hidden = !message;
+      banner.textContent = message || '';
+    }
+
+    function countLabel(shown, total) {
+      const count = Number(total || 0);
+      if (!count) return 'Nothing in this window';
+      if (shown < count) return `Showing ${shown.toLocaleString()} latest of ${count.toLocaleString()}`;
+      return `${count.toLocaleString()} in this window`;
+    }
+
+    function jsonBlock(label, value) {
+      if (value == null) return null;
+      if (typeof value === 'object' && !Array.isArray(value) && !Object.keys(value).length) return null;
+      const wrap = el('div');
+      const name = el('p', 'block-label', label);
+      const pre = el('pre', null, typeof value === 'string' ? value : JSON.stringify(value, null, 2));
+      wrap.append(name, pre);
+      return wrap;
+    }
+
+    function timeNode(value) {
+      const node = document.createElement('time');
+      if (!value) {
+        node.textContent = '—';
+        return node;
+      }
+      node.dateTime = value;
+      node.title = new Date(value).toLocaleString();
+      node.textContent = ago(value);
+      return node;
+    }
+
+    function renderRows(containerId, rows, draw) {
+      const container = document.getElementById(containerId);
+      const scroll = container.scrollTop;
+      const open = new Set([...container.querySelectorAll('.row[aria-expanded="true"]')].map((node) => node.dataset.id));
+      const fresh = new Set();
+      if (primed) {
+        for (const row of rows) {
+          const id = String(row._id);
+          if (!seen[containerId].has(id)) fresh.add(id);
+        }
+      }
+      seen[containerId] = new Set(rows.map((row) => String(row._id)));
+      container.replaceChildren();
+      if (!rows.length) {
+        container.append(el('p', 'empty', 'Nothing in this window.'));
+        return;
+      }
+      for (const row of rows) {
+        const id = String(row._id);
+        const entry = el('article', fresh.has(id) ? 'entry is-new' : 'entry');
+        const button = el('button', 'row');
+        button.type = 'button';
+        button.dataset.id = id;
+        button.setAttribute('aria-expanded', open.has(id) ? 'true' : 'false');
+        button.append(...draw(row).filter(Boolean));
+        const detail = el('div', 'detail');
+        detail.hidden = !open.has(id);
+        if (open.has(id)) detail.append(...details(containerId, row));
+        button.addEventListener('click', () => {
+          const expanded = button.getAttribute('aria-expanded') === 'true';
+          button.setAttribute('aria-expanded', String(!expanded));
+          detail.hidden = expanded;
+          if (!expanded && !detail.childElementCount) detail.append(...details(containerId, row));
+        });
+        entry.append(button, detail);
+        container.append(entry);
+      }
+      container.scrollTop = scroll;
+    }
+
+    function tags(...nodes) {
+      const row = el('div', 'tags');
+      nodes.filter(Boolean).forEach((node) => row.append(node));
+      return row;
+    }
+
+    function line(text) {
+      return text ? el('span', 'meta', text) : null;
+    }
+
+    function businessName(row) {
+      return row.business?.name || '';
+    }
+
+    function drawLog(row) {
+      return [
+        tags(timeNode(row.createdAt), badge(row.level), badge(row.status), badge(row.environment)),
+        el('span', 'title', row.message || row.event || 'Log'),
+        line([row.service, row.category, row.event, businessName(row), row.requestId].filter(Boolean).join(' · ')),
+      ];
+    }
+
+    function drawUsage(row) {
+      const sign = row.direction === 'debit' ? '−' : row.direction === 'credit' ? '+' : '';
+      return [
+        tags(timeNode(row.createdAt), badge(row.direction), badge(row.status)),
+        el('span', 'title', `${sign}${amount(row.credits)} credits`),
+        line([row.note, row.source?.type, businessName(row)].filter(Boolean).join(' · ')),
+      ];
+    }
+
+    function drawWorkflow(row) {
+      const steps = row.steps?.length ? `${row.steps.length} steps` : '';
+      return [
+        tags(timeNode(row.startedAt || row.createdAt), badge(row.status), steps ? el('span', 'badge', steps) : null),
+        el('span', 'title', row.name || row.trigger || row.executionId || 'Workflow run'),
+        line([row.trigger, row.summary, duration(row.startedAt, row.finishedAt), businessName(row)].filter(Boolean).join(' · ')),
+      ];
+    }
+
+    function details(kind, row) {
+      const nodes = [];
+      if (kind === 'logs') {
+        nodes.push(jsonBlock('Meta', row.meta), jsonBlock('Error', row.error));
+      } else if (kind === 'usage') {
+        nodes.push(jsonBlock('Note', row.note), jsonBlock('Idempotency key', row.idempotencyKey), jsonBlock('Source', row.source), jsonBlock('Meta', row.meta));
+      } else {
+        nodes.push(jsonBlock('Summary', row.summary), jsonBlock('Execution', row.executionId), jsonBlock('Error', row.error?.message), jsonBlock('Stack', row.error?.stack));
+        if (row.steps?.length) {
+          const list = el('ol', 'steps');
+          for (const step of row.steps) {
+            const item = el('li');
+            const ran = duration(step.startedAt, step.finishedAt);
+            item.append(el('strong', null, `${step.label || step.type || 'Step'} · ${step.status || 'unknown'}${ran ? ` · ${ran}` : ''}`));
+            if (step.summary) item.append(document.createElement('br'), el('span', null, step.summary));
+            if (step.error?.message) item.append(document.createElement('br'), el('span', null, step.error.message));
+            list.append(item);
+          }
+          const wrap = el('div');
+          wrap.append(el('p', 'block-label', 'Steps'), list);
+          nodes.push(wrap);
+        }
+      }
+      return nodes.filter(Boolean);
+    }
+
+    function paint(view) {
+      const summary = view.summary;
+      $('#errors').textContent = amount(summary.errors);
+        $('#failed-runs').textContent = amount(summary.failedWorkflows);
+        $('#failed-hint').textContent = `Failed workflow runs · ${amount(summary.failedLogs)} failed logs`;
+      $('#running').textContent = amount(summary.runningWorkflows);
+      $('#credits').textContent = `−${amount(summary.creditsDebited)} / +${amount(summary.creditsCredited)}`;
+      $('#logs-count').textContent = countLabel(view.logs.data.length, view.logs.metaData.totalDocuments);
+      $('#usage-count').textContent = countLabel(view.usageLogs.data.length, view.usageLogs.metaData.totalDocuments);
+      $('#workflows-count').textContent = countLabel(view.workflowLogs.data.length, view.workflowLogs.metaData.totalDocuments);
+      renderRows('logs', view.logs.data || [], drawLog);
+      renderRows('usage', view.usageLogs.data || [], drawUsage);
+      renderRows('workflows', view.workflowLogs.data || [], drawWorkflow);
+      primed = true;
+      lastFetched = view.fetchedAt || new Date().toISOString();
+      liveStatus.textContent = statusText();
+    }
+
+    async function refresh() {
+      if (!session?.token || inFlight) return;
+      if (session.expiresAt && Date.now() > session.expiresAt) {
+        stopPoll();
+        session = null;
+        sessionStorage.removeItem(SESSION_KEY);
+        showGate('Session expired. Sign in again.');
+        return;
+      }
+      inFlight = true;
+      try {
+        const data = await graphql(QUERY, variables(), 'fetchLogView', session.token);
+        const view = data?.fetchLogView;
+        if (!view) throw new Error('Log view did not return any data.');
+        setBanner('');
+        paint(view);
+      } catch (error) {
+        if (authFailure(error)) {
+          stopPoll();
+          session = null;
+          sessionStorage.removeItem(SESSION_KEY);
+          showGate('Sign in again. The access token is missing or no longer valid.');
+          return;
+        }
+        setBanner(error.message || 'Could not refresh logs.');
+      } finally {
+        inFlight = false;
+      }
+    }
+
+    function setFilter(id, value) {
+      $(id).value = value;
+      kick();
+    }
+
+    $('#login-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      formError.hidden = true;
+      const email = $('#email').value.trim();
+      const password = $('#password').value;
+      try {
+        const data = await graphql(
+          `mutation login($input: LoginInput!) { login(input: $input) { accessToken role scopes expiresIn user { email name } } }`,
+          { input: { email, password } },
+          'login',
+        );
+        const login = data?.login;
+        const scopes = login?.scopes || [];
+        if (!login?.accessToken) throw new Error('Sign in did not return an access token.');
+        if (!scopes.includes('admin:logs') && !scopes.includes('super:all')) {
+          throw new Error('This account cannot view logs. It needs the admin:logs scope.');
+        }
+        session = {
+          token: login.accessToken,
+          email: login.user?.email || email,
+          role: login.role,
+          expiresAt: login.expiresIn ? Date.now() + login.expiresIn * 1000 : null,
+        };
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        $('#password').value = '';
+        primed = false;
+        paused = false;
+        showApp();
+        await kick();
+      } catch (error) {
+        formError.hidden = false;
+        formError.textContent = error.message || 'Sign in failed.';
+      }
+    });
+
+    pauseButton.addEventListener('click', () => {
+      paused = !paused;
+      syncPause();
+      if (paused) stopPoll();
+      else kick();
+    });
+    $('#refresh').addEventListener('click', kick);
+    $('#sign-out').addEventListener('click', () => {
+      stopPoll();
+      paused = false;
+      session = null;
+      primed = false;
+      sessionStorage.removeItem(SESSION_KEY);
+      showGate();
+      formError.hidden = true;
+    });
+    $('#clear').addEventListener('click', () => {
+      ['#search', '#service', '#business'].forEach((id) => { $(id).value = ''; });
+      ['#level', '#category', '#log-status', '#environment', '#usage-direction', '#usage-status', '#workflow-status'].forEach((id) => { $(id).value = ''; });
+      $('#window').value = '24h';
+      kick();
+    });
+    $('#stat-errors').addEventListener('click', () => setFilter('#level', 'error'));
+    $('#stat-failed').addEventListener('click', () => setFilter('#workflow-status', 'failed'));
+    $('#stat-running').addEventListener('click', () => setFilter('#workflow-status', 'running'));
+    ['#search', '#service', '#business'].forEach((id) => {
+      $(id).addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(kick, 400);
+      });
+    });
+    document.querySelectorAll('.filters select').forEach((node) => node.addEventListener('change', kick));
+
+    setInterval(() => {
+      if (app.hidden) return;
+      document.querySelectorAll('time[datetime]').forEach((node) => { node.textContent = ago(node.dateTime); });
+      liveStatus.textContent = statusText();
+    }, 1000);
+
+    session = readSession();
+    if (session?.token && (!session.expiresAt || session.expiresAt > Date.now())) {
+      showApp();
+      kick();
+    } else {
+      session = null;
+      showGate();
+    }
+  </script>
+</body>
+</html>

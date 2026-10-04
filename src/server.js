@@ -20,6 +20,7 @@ import { Ticket } from '@avakado.ai/schemas';
 import { builtInRoutes } from './controller/index.js';
 import { oauthCors, oauthRouter } from './controller/oauthRouter.js';
 import { ensureDashboardClient } from './services/oauthService.js';
+import { ensureAvakadoApis } from './services/avakadoApis.js';
 const whitelist = ["https://ava-saas.onrender.com", "https://www.avakado.ai", "https://api-builder-eight.vercel.app", "https://avakado.ai", "http://localhost:5174", "http://localhost:3000", "https://studio.apollographql.com", "https://app.avakado.ai", "https://api-builder-eight.vercel.app/"];
 export const corsOptions = {
     origin: (origin, callback) => (!origin || whitelist.indexOf(origin) !== -1) ? callback(null, true) : callback(new Error('Not allowed by CORS')),
@@ -65,6 +66,11 @@ export const createApp = async () => {
         } catch (error) {
             console.error("error seeding dashboard OAuth client", error);
             throw error;
+        }
+        try {
+            await ensureAvakadoApis();
+        } catch (error) {
+            console.error("error seeding Avakado provider APIs", error);
         }
         app.use('/oauth', express.urlencoded({ extended: true }), oauthCors, oauthRouter);
         // Apollo setup

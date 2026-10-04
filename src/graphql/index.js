@@ -37,6 +37,8 @@ import { leadTypeDefs } from './leads/schema.js';
 import { leadResolvers } from './leads/resolver.js';
 import { workflowTypeDefs } from './workflows/schema.js';
 import { workflowResolvers } from './workflows/resolvers.js';
+import { logTypeDefs } from './logs/schema.js';
+import { logResolvers } from './logs/resolvers.js';
 import { serviceProvidersTypeDefs } from './serviceProviders/schema.js';
 import { serviceProvidersResolvers } from './serviceProviders/resolvers.js';
 import graphqlUploadExpress from 'graphql-upload/graphqlUploadExpress.mjs'
@@ -56,7 +58,8 @@ const typeDefs = mergeTypeDefs([
   messageTypeDefs,
   leadTypeDefs,
   paymentTypeDefs,
-  workflowTypeDefs
+  workflowTypeDefs,
+  logTypeDefs
 ]);
 const resolvers = mergeResolvers([
   conversationResolvers,
@@ -72,7 +75,8 @@ const resolvers = mergeResolvers([
   messageResolvers,
   leadResolvers,
   paymentResolvers,
-  workflowResolvers
+  workflowResolvers,
+  logResolvers
 ]);
 export const registerApollo = async (app, httpServer) => {
   const schema = makeExecutableSchema({
