@@ -2,8 +2,6 @@ import graphqlFields from 'graphql-fields';
 import { flattenFields, getSelectFields } from '../../utils/graphqlTools.js';
 import { Channel } from '@avakado.ai/schemas';
 import { verifyTransporter } from '../../utils/sendEmail.js';
-import { Telegraf } from 'telegraf';
-import axios from 'axios';
 import { GraphQLError } from 'graphql';
 import { AgentModel } from '@avakado.ai/schemas';
 import { Business } from '@avakado.ai/schemas';
@@ -95,57 +93,19 @@ export const channelResolvers = {
             return channel;
         },
         async deleteChannel(_, { id }, context) {
-            const channel = await Channel.findOne({ _id: id, business: context.user.business });
+            const channel = await Channel.findOne({ _id: id, business: context.user.business }).populate('apiAuthenticator').populate('provider');
             if (!channel) throw new GraphQLError('Channel not found', { extensions: { code: 'INVALID_INPUT' } });
 
-            // const { success, config: restConfigurations } = await serviceProvider.teardownChannel({
-            //     apiAuthenticator: apiAuthenticatorDoc,
-            //     config: channel.config,
-            // });
-            // // proceed with delete regardless; restConfigurations.teardown shows what Meta cleaned up
-            // await channel.deleteOne();
-
-
-            switch (channel.type) {
-                case "telegram": {
-                    const bot = new Telegraf(channel.secrets?.botToken);
-                    try {
-                        await bot.telegram.deleteWebhook();          // remove webhook
-                    } catch (err) {
-                        console.warn("Telegram webhook deletion failed; continuing.", err.message);
-                    }
-                    break;
+            const serviceProvider = PROVIDER_MAP[channel.provider?.name];
+            if (serviceProvider?.teardownChannel) {
+                try {
+                    await serviceProvider.teardownChannel({
+                        apiAuthenticator: channel.apiAuthenticator,
+                        config: channel.config,
+                    });
+                } catch (err) {
+                    console.warn(`${channel.provider?.name} teardown failed; continuing.`, err.message);
                 }
-                case "whatsapp": {
-                    const { waba_id, phone_number_id } = channel.config ?? {};
-                    const API_VERSION = "v23.0";
-                    const token = channel.secrets?.permanentAccessToken;
-                    if (token && waba_id) {
-                        try {
-                            await axios.delete(
-                                `https://graph.facebook.com/${API_VERSION}/${waba_id}/subscribed_apps`,
-                                { headers: { Authorization: `Bearer ${token}` } }
-                            );
-                        } catch (err) {
-                            console.warn("WA unsubscribe failed; continuing.", err.message);
-                        }
-                    }
-                    if (token && phone_number_id) {
-                        try {
-                            await axios.post(
-                                `https://graph.facebook.com/${API_VERSION}/${phone_number_id}/deregister`,
-                                { messaging_product: "whatsapp" },
-                                { headers: { Authorization: `Bearer ${token}` } }
-                            );
-                        } catch (err) {
-                            console.warn("WA deregister failed; continuing.", err.message);
-                        }
-                    }
-                    break;
-                }
-                /* Add teardown for other channel types as needed */
-                default:
-                    break;
             }
             const deletedChannel = await Channel.findOneAndDelete({ _id: id, business: context.user.business });
             if (deletedChannel) {

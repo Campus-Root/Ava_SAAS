@@ -1,7 +1,7 @@
-import OpenAI from "openai";
 import mongoose from "mongoose";
 import 'dotenv/config'
-export const openai = new OpenAI({ apiKey: process.env.OPEN_API_KEY });
+import { openai } from "@avakado.ai/providers";
+export { openai };
 export const EmbeddingFunct = async (text) => {
     try {
         const { data, model, usage } = await openai.embeddings.create({

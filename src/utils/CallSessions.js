@@ -1,7 +1,7 @@
 
 import { parsePhoneNumber } from 'libphonenumber-js';
 import { CallSession } from '@avakado.ai/schemas';
-import { Lead } from '@avakado.ai/schemas';
+import { Lead, applyContactWindow, contactWindowValue } from '@avakado.ai/schemas';
 import { Conversation } from '@avakado.ai/schemas';
 import { AgentModel } from '@avakado.ai/schemas';
 import { Channel, negotiateCall } from '@avakado.ai/schemas';
@@ -42,7 +42,12 @@ export const normalizePhoneNumber = (rawNumber, defaultCountry = 'IN') => {
 export const getCallSessionForIncomingCall = async ({ CallSid, CallTo, CallFrom, Direction, businessId, channelId, agentId }, requestBody = {}) => {
     let businessNumber = normalizePhoneNumber(CallTo)?.number ?? CallTo;
     let leadNumber = normalizePhoneNumber(CallFrom)?.number ?? CallFrom;
-    let lead = await Lead.findOneAndUpdate({ business: businessId, "contactDetails.phone.handle": leadNumber }, { $set: { lastInteractedAt: new Date() } }, { new: true });
+    const callAt = new Date();
+    let lead = await Lead.findOneAndUpdate(
+        { business: businessId, "contactDetails.phone.handle": leadNumber },
+        applyContactWindow({ $set: { lastInteractedAt: callAt } }, 'call', 'phone', callAt),
+        { new: true },
+    );
     if (!lead) {
         lead = await Lead.create({
             business: businessId,
@@ -52,13 +57,14 @@ export const getCallSessionForIncomingCall = async ({ CallSid, CallTo, CallFrom,
                     handle: leadNumber,
                     label: "personal",
                     isPrimary: true,
-                    metadata: normalizePhoneNumber(CallFrom) ?? {}
+                    metadata: normalizePhoneNumber(CallFrom) ?? {},
+                    call: contactWindowValue('call', 'phone', callAt),
                 }
             },
             source: `Exotel-${Direction}`,
             status: "new",
             data: {},
-            lastInteractedAt: new Date(),
+            lastInteractedAt: callAt,
         });
     }
     let conversation = await Conversation.findOneAndUpdate({ business: businessId, channel: channelId, lead: lead._id }, { $set: { status: "open" } }, { new: true });

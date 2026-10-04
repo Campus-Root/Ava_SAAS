@@ -15,8 +15,8 @@
   "dependencies": {
     "@apollo/server": "^5.0.0",
     "@as-integrations/express5": "^1.1.2",
-    "@avakado.ai/providers": "^1.0.11",
-    "@avakado.ai/schemas": "^1.1.20",
+    "@avakado.ai/providers": "file:../avakado-shared/packages/providers",
+    "@avakado.ai/schemas": "^1.1.22",
     "@aws-sdk/client-s3": "^3.1010.0",
     "@aws-sdk/s3-request-presigner": "^3.1010.0",
     "@google/genai": "^1.25.0",
@@ -43,9 +43,7 @@
     "morgan": "^1.12.1",
     "multer": "^2.0.2",
     "nodemailer": "^10.0.12",
-    "openai": "^4.104.0",
     "razorpay": "^2.9.6",
-    "telegraf": "^4.16.3",
     "uuid": "^11.1.0",
     "yup": "^1.6.1",
     "zod": "^3.24.4"
