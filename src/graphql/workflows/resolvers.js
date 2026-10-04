@@ -1,15 +1,14 @@
 import { TriggerTemplate } from '@avakado.ai/schemas';
 import { Workflow } from '@avakado.ai/schemas';
-import { validateLoops } from "../../utils/workflowHelpers.js";
 import { GraphQLError } from "graphql";
 
 export const workflowResolvers = {
     Query: {
-        async fetchTriggerTemplates(_, { limit = 10, page = 1, name, type, sort = { updatedAt: -1 } }, context, info) {
+        async fetchTriggerTemplates(_, { limit = 10, page = 1, name, type }, context, info) {
             const filter = {};
             if (name) filter.name = { $regex: name, $options: "i" };
             if (type) filter.type = { $regex: type, $options: "i" };
-            const triggerTemplates = await TriggerTemplate.find(filter).sort(sort).skip((page - 1) * limit).limit(limit);
+            const triggerTemplates = await TriggerTemplate.find(filter).skip((page - 1) * limit).limit(limit);
             const totalDocuments = await TriggerTemplate.countDocuments(filter);
             return { data: triggerTemplates, metaData: { page, limit, totalPages: Math.ceil(totalDocuments / limit), totalDocuments } };
         },
