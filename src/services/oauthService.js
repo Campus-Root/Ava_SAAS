@@ -372,6 +372,45 @@ export async function revokeToken({ token, tokenTypeHint, clientId, clientSecret
     }
 }
 
+/** A signature-valid access JWT whose exp has passed. Null for any other failure. */
+export async function decodeExpiredAccessJwt(accessToken) {
+    if (!accessToken) return null;
+    let decoded;
+    try {
+        decoded = jwt.verify(accessToken, ACCESS_SECRET, { ignoreExpiration: true });
+    } catch {
+        return null;
+    }
+    if (!decoded?.id || !decoded.cid || decoded.token_use === "sso") return null;
+    if (!decoded.exp || decoded.exp * 1000 > Date.now()) return null;
+    if (decoded.jti && await isJtiRevoked(decoded.jti)) return null;
+    if (decoded.sv != null) {
+        const client = await OAuthClient.findOne({ clientId: decoded.cid });
+        if (!client || client.revokedAt) return null;
+        if (Number(decoded.sv) !== Number(client.secretVersion)) return null;
+    }
+    return decoded;
+}
+
+/**
+ * Issue a new 1-hour access token for a first-party browser session.
+ * The refresh cookie is left unchanged.
+ */
+export async function issueAccessFromRefreshCookie({ refreshToken, userId, clientId }) {
+    if (!refreshToken || !userId || !clientId) return null;
+    const stored = await OAuthRefreshToken.findOne({ tokenHash: sha256Hex(refreshToken) });
+    if (!stored || stored.revokedAt || stored.usedAt) return null;
+    if (stored.expiresAt.getTime() < Date.now()) return null;
+    if (String(stored.user) !== String(userId)) return null;
+    if (stored.clientId !== clientId) return null;
+    const client = await findActiveClient(stored.clientId);
+    if (!client?.isFirstParty || client.grantMode !== "access_refresh") return null;
+    const user = await User.findById(stored.user).select("-password");
+    if (!user) return null;
+    const access = signAccessToken(user, client);
+    return { accessToken: access.token, expiresIn: ACCESS_TTL_SECONDS, decoded: { id: String(user._id) } };
+}
+
 export async function verifyAccessJwt(accessToken) {
     if (!accessToken) return { success: false, message: "No access token provided", data: { decoded: null } };
     try {

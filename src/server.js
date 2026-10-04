@@ -35,6 +35,7 @@ export const corsOptions = {
         "x-apollo-operation-name",
     ],
     credentials: true,
+    exposedHeaders: ['X-Access-Token', 'X-Access-Token-Expires-In'],
     optionsSuccessStatus: 200,
     preflightContinue: false
 };
@@ -92,6 +93,7 @@ export const createApp = async () => {
             origin: true,
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
             allowedHeaders: ['Content-Type', 'Authorization'],
+            exposedHeaders: ['X-Access-Token', 'X-Access-Token-Expires-In'],
             credentials: true
         });
         app.use('/', (req, res, next) => {

@@ -1,14 +1,31 @@
 import AuthService from "../services/authService.js";
+import { REFRESH_COOKIE_NAME, sendRenewedAccessToken } from "../utils/authCookies.js";
+
+async function authenticateBearer(req, res, token) {
+    const { success, message, data } = await AuthService.verifyTokens(token);
+    if (success) {
+        const { data: user } = await AuthService.verifyDecodedToken(data.decoded);
+        return { user, accessToken: token };
+    }
+    if (message === "jwt expired") {
+        const renewed = await AuthService.renewExpiredDashboardAccess(token, req.cookies?.[REFRESH_COOKIE_NAME]);
+        if (renewed) {
+            sendRenewedAccessToken(res, renewed);
+            const { data: user } = await AuthService.verifyDecodedToken({ id: renewed.decoded.id });
+            return { user, accessToken: renewed.accessToken };
+        }
+    }
+    return { error: message || "Token Verification Failed" };
+}
+
 export const authMiddleware = async (req, res, next) => {
     if (!req.headers.authorization) return res.status(401).json({ success: false, message: 'Access Token Missing', data: null });
     const token = req.headers.authorization.split(" ")[1];
     if (!token || token.trim() === "" || token === 'null' || token === 'undefined') return res.status(401).json({ success: false, message: 'Access Token Missing', data: null });
 
-    const { success, message, data } = await AuthService.verifyTokens(token)
-    if (!success) return res.status(401).json({ success, message, data: null });
-    const { decoded } = data;
-    const { data: user } = await AuthService.verifyDecodedToken(decoded);
-    req.user = user;
+    const session = await authenticateBearer(req, res, token);
+    if (session.error) return res.status(401).json({ success: false, message: session.error, data: null });
+    req.user = session.user;
     return next();
 }
 
@@ -251,11 +268,9 @@ export const authForGraphQL = async (req, res) => {
         if (!authHeader) throw new Error('Access Token Missing');
         const token = authHeader.split(" ")[1];
         if (!token || token.trim() === "" || token === 'null' || token === 'undefined') throw new Error('Access Token Missing');
-        const { success, message, data } = await AuthService.verifyTokens(token);
-        const { decoded } = data;
-        if (!success) throw new Error(`Token Verification Failed: ${message}`);
-        const { data: user } = await AuthService.verifyDecodedToken(decoded);
-        return { req, res, user, isAuthenticated: true, accessToken: token };
+        const session = await authenticateBearer(req, res, token);
+        if (session.error) throw new Error(`Token Verification Failed: ${session.error}`);
+        return { req, res, user: session.user, isAuthenticated: true, accessToken: session.accessToken };
     } catch (error) {
         // console.error(error);
         throw new Error('Internal Server Error');
