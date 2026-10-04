@@ -50,8 +50,6 @@ export const agentTypeDefs = `#graphql
     modelConfig: ModelConfig
     modality: String
     responseConfig: JSON
-    """ Associated knowledge collections """
-    collections: [Collection]
     """ Associated workflow """
     workflow: Workflow
     """ Communication channels the agent is active on """
@@ -103,7 +101,6 @@ export const agentTypeDefs = `#graphql
     modelConfig: JSON
     modality: String
     responseConfig: JSON
-    collections: [ID]
     workflow: ID
     channels: [ID]
     actions: [ID]

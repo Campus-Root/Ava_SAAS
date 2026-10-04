@@ -6,7 +6,7 @@ import { normalizePhoneNumber } from '../utils/setup.js';
 import { buildComponents } from '../utils/tools.js';
 import { campaignCronJobSpec } from '../services/campaignEvents.js';
 import { sessionMedia } from '../utils/CallSessions.js';
-import { constructWhatsappMessageFromTemplate } from '../graphql/job/helpers.js';
+import { constructWhatsappMessageFromTemplate } from '../graphql/campaigns/helpers.js';
 import { buildDirectMessageTasks } from '../utils/messagingChannels.js';
 
 export const campaignRoutes = Router();

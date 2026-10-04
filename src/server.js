@@ -13,7 +13,6 @@ import 'dotenv/config'
 // weighted imports
 import { Message } from '@avakado.ai/schemas';
 import ical, { ICalCalendarMethod } from 'ical-generator';
-import { generateMeetingUrl } from "./utils/tools.js";
 import { DateTime } from "luxon";
 import { Ticket } from '@avakado.ai/schemas';
 // import { ensureWhatsAppWebhookSubscription } from './utils/whatsapp-app-bootstrap.js';

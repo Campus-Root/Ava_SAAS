@@ -8,7 +8,7 @@ import { documentTypes } from '../utils/graphqlTools.js';
 import { normalizePhoneNumber } from '../utils/setup.js';
 import { uploadFileToWhatsApp } from '../utils/whatsapp-app-bootstrap.js';
 import { sessionMedia } from '../utils/CallSessions.js';
-import { constructWhatsappMessageFromTemplate } from '../graphql/job/helpers.js';
+import { constructWhatsappMessageFromTemplate } from '../graphql/campaigns/helpers.js';
 import { contactDirectMessage } from '../utils/messagingChannels.js';
 
 const contactUpload = multer({
@@ -157,7 +157,9 @@ leadRoutes.post('/contact', authMiddleware, acceptContactBody, async (req, res) 
                     filename: originalname,
                     ref: { strategy: 'whatsapp_media_id', value: mediaId, needsAuth: true, url: `https://graph.facebook.com/v23.0/${mediaId}` },
                 }];
-                data = { id: mediaId, caption: type === 'document' ? caption : null };
+                data = { id: mediaId };
+                if (type === 'document' && originalname) data.filename = originalname;
+                if (caption && type !== 'audio') data.caption = caption;
             } else {
                 return res.status(400).json({ success: false, message: 'action must be sendMessage or sendMedia for WhatsApp' });
             }

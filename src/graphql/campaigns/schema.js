@@ -1,5 +1,4 @@
-
-export const jobTypeDefs = `#graphql
+export const campaignTypeDefs = `#graphql
 type CampaignTimeLines {
     scheduledAt: DateTime
     startedAt: DateTime

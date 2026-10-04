@@ -27,10 +27,10 @@ import { actionResolvers } from './actions/resolvers.js';
 import { actionTypeDefs } from './actions/schema.js';
 import { agentResolvers } from './agents/resolvers.js';
 import { agentTypeDefs } from './agents/schema.js';
-import { collectionResolvers } from './collections/resolvers.js';
-import { collectionTypeDefs } from './collections/schema.js';
-import { jobResolvers } from './job/resolver.js';
-import { jobTypeDefs } from './job/schema.js';
+import { knowledgeResolvers } from './knowledge/resolvers.js';
+import { knowledgeTypeDefs } from './knowledge/schema.js';
+import { campaignResolvers } from './campaigns/resolver.js';
+import { campaignTypeDefs } from './campaigns/schema.js';
 import { messageTypeDefs } from './messages/schema.js';
 import { messageResolvers } from './messages/resolver.js';
 import { leadTypeDefs } from './leads/schema.js';
@@ -42,42 +42,8 @@ import { logResolvers } from './logs/resolvers.js';
 import { serviceProvidersTypeDefs } from './serviceProviders/schema.js';
 import { serviceProvidersResolvers } from './serviceProviders/resolvers.js';
 import graphqlUploadExpress from 'graphql-upload/graphqlUploadExpress.mjs'
-const typeDefs = mergeTypeDefs([
-  scopeAuthDirectiveTypeDefs,
-  sharedTypeDefs,
-  conversationTypeDefs,
-  channelTypeDefs,
-  ticketTypeDefs,
-  notificationTypeDefs,
-  userTypeDefs,
-  serviceProvidersTypeDefs,
-  agentTypeDefs,
-  actionTypeDefs,
-  collectionTypeDefs,
-  jobTypeDefs,
-  messageTypeDefs,
-  leadTypeDefs,
-  paymentTypeDefs,
-  workflowTypeDefs,
-  logTypeDefs
-]);
-const resolvers = mergeResolvers([
-  conversationResolvers,
-  channelResolvers,
-  ticketResolvers,
-  notificationResolvers,
-  userResolvers,
-  serviceProvidersResolvers,
-  agentResolvers,
-  actionResolvers,
-  collectionResolvers,
-  jobResolvers,
-  messageResolvers,
-  leadResolvers,
-  paymentResolvers,
-  workflowResolvers,
-  logResolvers
-]);
+const typeDefs = mergeTypeDefs([scopeAuthDirectiveTypeDefs, sharedTypeDefs, conversationTypeDefs, channelTypeDefs, ticketTypeDefs, notificationTypeDefs, userTypeDefs, serviceProvidersTypeDefs, agentTypeDefs, actionTypeDefs, knowledgeTypeDefs, campaignTypeDefs, messageTypeDefs, leadTypeDefs, paymentTypeDefs, workflowTypeDefs, logTypeDefs]);
+const resolvers = mergeResolvers([conversationResolvers, channelResolvers, ticketResolvers, notificationResolvers, userResolvers, serviceProvidersResolvers, agentResolvers, actionResolvers, knowledgeResolvers, campaignResolvers, messageResolvers, leadResolvers, paymentResolvers, workflowResolvers, logResolvers]);
 export const registerApollo = async (app, httpServer) => {
   const schema = makeExecutableSchema({
     typeDefs,

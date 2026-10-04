@@ -26,6 +26,7 @@ import mongoose from "mongoose";
 import { CallSession } from '@avakado.ai/schemas';
 import { sessionMedia } from "../../utils/CallSessions.js";
 import { contactDirectMessage } from "../../utils/messagingChannels.js";
+import { constructWhatsappMessageFromTemplate } from "../campaigns/helpers.js";
 
 export const leadResolvers = {
   Query: {
@@ -251,7 +252,7 @@ export const leadResolvers = {
               // ✅ Await the file promise first
               const { createReadStream, filename, mimetype } = await file.promise;
               console.log('File data:', { filename, mimetype });
-              if (!createReadStream || typeof createReadStream !== 'function') throw new GraphQLError(`createReadStream is not a function. Received: ${JSON.stringify(Object.keys(fileData))}`, { extensions: { code: "INTERNAL_SERVER_ERROR" } });
+              if (!createReadStream || typeof createReadStream !== 'function') throw new GraphQLError("Uploaded file has no readable stream", { extensions: { code: "INTERNAL_SERVER_ERROR" } });
               // Create the upload stream
               const fileStream = createReadStream();
               const { id: mediaId } = await uploadFileToWhatsApp(fileStream, mimetype, filename, platformMeta);
@@ -263,7 +264,9 @@ export const leadResolvers = {
                 filename: filename, // documents only
                 ref: { strategy: "whatsapp_media_id", value: mediaId, needsAuth: true, url: `https://graph.facebook.com/v23.0/${mediaId}` },
               }]
-              data = { id: mediaId, caption: type === 'document' ? caption : null };
+              data = { id: mediaId };
+              if (type === 'document' && filename) data.filename = filename;
+              if (caption && type !== 'audio') data.caption = caption;
               break;
             default:
               break;

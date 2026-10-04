@@ -17,7 +17,7 @@ import { campaignCronJobSpec } from "../../services/campaignEvents.js";
 import { constructWhatsappMessageFromTemplate } from "./helpers.js";
 import { sessionMedia } from "../../utils/CallSessions.js";
 import { buildDirectMessageTasks, validateDirectMessageCampaign } from "../../utils/messagingChannels.js";
-export const jobResolvers = {
+export const campaignResolvers = {
     Query: {
         fetchCampaigns: async (_, { id, name, channelIds, leadIds, status, limit = 10, page = 1, sort = { updatedAt: -1 } }, context, info) => {
             const filter = { business: context.user.business };

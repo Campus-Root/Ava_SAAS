@@ -1,17 +1,5 @@
 // import * as yup from "yup";
-import { string, object, ValidationError, array, mixed, boolean } from "yup"
-import { Business } from "@avakado.ai/schemas"
-import { User } from '@avakado.ai/schemas';
-export const collectionSchema = object({
-    name: string().required("Name is required"),
-    contents: array().of(
-        object({
-            source: string().oneOf(['website', 'youtube', 'file']).required("Should be one of the following 'website', 'youtube', 'file' "),
-            metaData: mixed().notRequired()
-        })
-    ).optional(),
-    description: string().optional()
-});
+import { string, object, array, mixed, boolean } from "yup"
 
 export const updateSchema = object({
     action: string().oneOf(['rename', 'addContents', 'removeContents']).required(),
@@ -29,7 +17,6 @@ import mongoose from 'mongoose';
 
 const objectIdValidator = string().test('is-valid-objectId', 'Invalid ObjectId', (value) => mongoose.Types.ObjectId.isValid(value));
 export const agentSchema = object({
-    collections: array().of(objectIdValidator),
     personalInfo: object().optional(),
     tools: array().optional(),
     // actions: array().of(objectIdValidator).optional(),

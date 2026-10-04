@@ -80,13 +80,6 @@ export const getRequiredScopesForOperation = (operation) => {
         'agent.view_conversations': ['agent:view_conversations'],
         'agent.manage_prompts': ['agent:manage_prompts'],
 
-        // Collection operations
-        'collection.read': ['collection:read'],
-        'collection.create': ['collection:create'],
-        'collection.update': ['collection:update'],
-        'collection.delete': ['collection:delete'],
-        'collection.upload_files': ['collection:upload_files'],
-        'collection.manage_permissions': ['collection:manage_permissions'],
 
         // Channel operations
         'channel.read': ['channel:read'],
@@ -127,6 +120,7 @@ export const getRequiredScopesForOperation = (operation) => {
         'analytics.real_time': ['analytics:real_time'],
 
         // File operations
+        'file.read': ['file:read'],
         'file.upload': ['file:upload'],
         'file.download': ['file:download'],
         'file.delete': ['file:delete'],
