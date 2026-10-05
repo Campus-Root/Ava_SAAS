@@ -7,10 +7,9 @@ import {
   buildDuplicateQuery,
   mergeContactDetails,
   findMatchedHandles,
-  extractHandles,
+  contactMatchClauses,
   indexLeadsByHandle,
   classifyBulkCreateRows,
-  escapeRegex,
 } from "../../utils/leadDuplicateUtils.js";
 import { Channel } from '@avakado.ai/schemas';
 import { sendKafkaMessage } from "../../utils/kafka.js";
@@ -59,6 +58,8 @@ export const leadResolvers = {
     },
 
     fetchLeads: async (_, { limit = 10, page = 1, templateIds = [], tags = [], identifier, ids = [], status = [], origin = [], sort = { updatedAt: -1 } }, context, info) => {
+      const orderedSort = { ...sort };
+      if (orderedSort._id == null) orderedSort._id = Object.values(sort)[0] === 1 ? 1 : -1;
       const filter = { business: context.user.business };
       if (ids.length > 0) filter._id = { $in: ids.map(id => new mongoose.Types.ObjectId(id)) };
       if (templateIds.length > 0) filter.template = { $in: templateIds.map(id => new mongoose.Types.ObjectId(id)) };
@@ -75,7 +76,7 @@ export const leadResolvers = {
       const { rootFields } = getSelectFields(requestedFields.data);
       const [leads, totalDocuments] = await Promise.all([
         Lead.find(filter)
-          .sort(sort)
+          .sort(orderedSort)
           .skip((page - 1) * limit)
           .limit(limit)
           .select(rootFields),
@@ -122,12 +123,7 @@ export const leadResolvers = {
       const businessId = context.user.business;
 
       // One DB round-trip: fetch any leads that share a handle with this batch
-      const orClauses = [];
-      for (const input of dataList) {
-        for (const { platform, handle } of extractHandles(input.contactDetails)) {
-          orClauses.push({ [`contactDetails.${platform}`]: { $elemMatch: { handle } } });
-        }
-      }
+      const orClauses = dataList.flatMap((input) => contactMatchClauses(input.contactDetails));
 
       const existingLeads = orClauses.length
         ? await Lead.find({ business: businessId, $or: orClauses }).lean()

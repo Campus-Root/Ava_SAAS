@@ -1,10 +1,83 @@
 // utils/leadDuplicateUtils.js
 
+import { parsePhoneNumber } from 'libphonenumber-js';
+
 const CONTACT_PLATFORMS = ['whatsapp', 'telegram', 'email', 'phone', 'twitter', 'instagram', 'facebook'];
+const PHONE_PLATFORMS = new Set(['phone', 'whatsapp']);
 
 /**
- * Extracts all { platform, handle } pairs from a contactDetails object.
- * Skips entries with no handle.
+ * Phone and WhatsApp numbers that parse to the same E.164 value are one identity,
+ * regardless of +, spaces, or a missing country code.
+ */
+export function canonicalPhone(handle, defaultCountry = 'IN') {
+  const raw = String(handle || '').trim();
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, '');
+  const attempts = raw.startsWith('+') || !digits ? [raw] : [raw, `+${digits}`];
+  for (const attempt of attempts) {
+    try {
+      const phone = parsePhoneNumber(attempt, defaultCountry);
+      if (!phone?.isValid()) continue;
+      return {
+        e164: phone.number,
+        nationalNumber: phone.nationalNumber,
+        countryCallingCode: String(phone.countryCallingCode),
+      };
+    } catch {
+      // try the next spelling
+    }
+  }
+  return null;
+}
+
+export function handleKey(platform, handle) {
+  const trimmed = String(handle || '').trim().toLowerCase();
+  if (PHONE_PLATFORMS.has(platform)) {
+    const phone = canonicalPhone(trimmed);
+    if (phone) return `tel:${phone.e164}`;
+  }
+  return `${platform}:${trimmed}`;
+}
+
+function phoneHandlePattern(phone) {
+  const cc = escapeRegex(phone.countryCallingCode);
+  const national = phone.nationalNumber.split('').map((digit) => escapeRegex(digit)).join('[\\s\\-()]*');
+  return `^\\+?(?:${cc}[\\s\\-()]*)?0?${national}$`;
+}
+
+/**
+ * Mongo clause that matches this handle, including phone-number spelling variants
+ * on both phone and WhatsApp.
+ */
+export function handleMatchClause(platform, handle) {
+  const trimmed = String(handle || '').trim().toLowerCase();
+  const phone = PHONE_PLATFORMS.has(platform) ? canonicalPhone(trimmed) : null;
+  if (!phone) {
+    return { [`contactDetails.${platform}`]: { $elemMatch: { handle: trimmed } } };
+  }
+  const pattern = phoneHandlePattern(phone);
+  return {
+    $or: ['phone', 'whatsapp'].map((name) => ({
+      [`contactDetails.${name}.handle`]: { $regex: pattern },
+    })),
+  };
+}
+
+export function contactMatchClauses(contactDetails = {}) {
+  const clauses = [];
+  const seen = new Set();
+  for (const { platform, handle, key } of extractHandles(contactDetails)) {
+    if (seen.has(key)) continue;
+    seen.add(key);
+    clauses.push(handleMatchClause(platform, handle));
+  }
+  return clauses;
+}
+
+/**
+ * Extracts all { platform, handle, key } pairs from a contactDetails object.
+ * Skips entries with no handle. `key` is shared by phone and WhatsApp when
+ * the number is the same person.
  */
 export function extractHandles(contactDetails = {}) {
   const handles = [];
@@ -12,7 +85,8 @@ export function extractHandles(contactDetails = {}) {
     const entries = contactDetails[platform] || [];
     for (const entry of entries) {
       if (entry.handle?.trim()) {
-        handles.push({ platform, handle: entry.handle.trim().toLowerCase() });
+        const handle = entry.handle.trim().toLowerCase();
+        handles.push({ platform, handle, key: handleKey(platform, handle) });
       }
     }
   }
@@ -24,9 +98,8 @@ export function extractHandles(contactDetails = {}) {
  * Returns null if no handles to match on.
  */
 export function buildDuplicateQuery(contactDetails, businessId) {
-  const handles = extractHandles(contactDetails);
-  if (!handles.length) return null;
-  const orClauses = handles.map(({ platform, handle }) => ({ [`contactDetails.${platform}`]: { $elemMatch: { handle } } }));
+  const orClauses = contactMatchClauses(contactDetails);
+  if (!orClauses.length) return null;
   return { business: businessId, $or: orClauses };
 }
 
@@ -44,13 +117,13 @@ export function mergeContactDetails(existing = {}, incoming = {}) {
     // Build a map of existing entries keyed by lowercased handle
     const seen = new Map();
     for (const entry of existingEntries) {
-      const key = entry.handle?.trim().toLowerCase() || `__nohandle_${Math.random()}`;
+      const key = entry.handle?.trim() ? handleKey(platform, entry.handle) : `__nohandle_${Math.random()}`;
       seen.set(key, { ...entry });
     }
 
     // Merge incoming — update metadata/label/isPrimary if handle exists, else add new
     for (const entry of incomingEntries) {
-      const key = entry.handle?.trim().toLowerCase();
+      const key = entry.handle?.trim() ? handleKey(platform, entry.handle) : '';
       if (key && seen.has(key)) {
         // Update non-destructively: only overwrite if incoming has a value
         const existing = seen.get(key);
@@ -79,10 +152,10 @@ export function findMatchedHandles(contactDetails, existingLead) {
   const incomingHandles = extractHandles(contactDetails);
   const existingHandles = extractHandles(existingLead.contactDetails?.toObject?.() || existingLead.contactDetails || {});
 
-  const existingSet = new Set(existingHandles.map(h => `${h.platform}:${h.handle}`));
+  const existingSet = new Set(existingHandles.map(h => h.key));
   return incomingHandles
-    .filter(h => existingSet.has(`${h.platform}:${h.handle}`))
-    .map(h => `${h.platform}:${h.handle}`);
+    .filter(h => existingSet.has(h.key))
+    .map(h => h.key);
 }
 
 /**
@@ -92,8 +165,7 @@ export function indexLeadsByHandle(leads = []) {
   const map = new Map();
   for (const lead of leads) {
     const details = lead.contactDetails?.toObject?.() || lead.contactDetails || {};
-    for (const { platform, handle } of extractHandles(details)) {
-      const key = `${platform}:${handle}`;
+    for (const { key } of extractHandles(details)) {
       if (!map.has(key)) map.set(key, lead);
     }
   }
@@ -114,9 +186,7 @@ export function classifyBulkCreateRows(dataList = [], handleToLead = new Map()) 
   const conflicts = [];
 
   dataList.forEach((input, index) => {
-    const handleKeys = extractHandles(input.contactDetails).map(
-      ({ platform, handle }) => `${platform}:${handle}`
-    );
+    const handleKeys = extractHandles(input.contactDetails).map(({ key }) => key);
 
     // 1) Within-batch collision against an earlier row that wouldCreate
     const batchMatched = [];
