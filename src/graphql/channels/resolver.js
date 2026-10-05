@@ -49,6 +49,7 @@ export const channelResolvers = {
                 await Business.populate(channel, { path: 'business', select: populateFields.business });
                 return channel;
             }
+            if (!apiAuthenticator) throw new GraphQLError('ApiAuthenticator is required', { extensions: { code: 'INVALID_INPUT' } });
             const apiAuthenticatorDoc = await ApiAuthenticators.findById(apiAuthenticator);
             if (!apiAuthenticatorDoc) throw new GraphQLError('ApiAuthenticator not found', { extensions: { code: 'INVALID_INPUT' } });
             const provider = await Providers.findById(apiAuthenticatorDoc.provider);

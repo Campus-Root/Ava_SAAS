@@ -138,7 +138,6 @@ export const messageTypeDefs = `#graphql
     busyAt: DateTime
     no_answerAt: DateTime
     canceledAt: DateTime
-    durationSec: Int
   }
 
   """A phone/voice call session linked to a conversation"""
