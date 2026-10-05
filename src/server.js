@@ -86,7 +86,7 @@ export const createApp = async () => {
             if (JSON.stringify(req.query) !== JSON.stringify(sanitize(req.query))) return res.status(400).json({ error: 'Invalid query parameters detected', message: 'Query contains potentially malicious content' });
             next();
         });
-        app.use(express.urlencoded({ limit: '50mb', extended: true }));
+        app.use(express.urlencoded({ limit: '150mb', extended: true }));
         app.use(bodyParser.urlencoded({ extended: true }));
         // Routes
         const allowAllCors = cors({
