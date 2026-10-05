@@ -15,7 +15,7 @@
   "dependencies": {
     "@apollo/server": "^5.0.0",
     "@as-integrations/express5": "^1.1.2",
-    "@avakado.ai/providers": "^1.0.19",
+    "@avakado.ai/providers": "^1.0.20",
     "@avakado.ai/schemas": "^1.1.28",
     "@avakado.ai/token-dollars": "^1.0.22",
     "@aws-sdk/client-s3": "^3.1010.0",
