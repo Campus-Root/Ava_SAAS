@@ -17,7 +17,7 @@
     "@as-integrations/express5": "^1.1.2",
     "@avakado.ai/providers": "^1.0.20",
     "@avakado.ai/schemas": "^1.1.29",
-    "@avakado.ai/token-dollars": "^1.0.22",
+    "@avakado.ai/token-dollars": "^1.0.23",
     "@aws-sdk/client-s3": "^3.1010.0",
     "@aws-sdk/s3-request-presigner": "^3.1010.0",
     "@google/genai": "^1.25.0",
