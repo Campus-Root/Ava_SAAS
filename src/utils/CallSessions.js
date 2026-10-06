@@ -72,7 +72,7 @@ export const getCallSessionForIncomingCall = async ({ CallSid, CallTo, CallFrom,
         console.log("Conversation not found, creating new one with the details", {
             business: businessId, channel: channelId, lead: lead._id
         });
-        conversation = await Conversation.create({ business: businessId, channel: channelId, agent: agentId, externalConversationId: normalizePhoneNumber(CallFrom), lead: lead._id, status: "open" });
+        conversation = await Conversation.create({ business: businessId, channel: channelId, agent: agentId, externalConversationId: leadNumber, lead: lead._id, status: "open" });
     }
     const agent = await AgentModel.findById(agentId);
     const channel = await Channel.findById(channelId).populate("provider");
