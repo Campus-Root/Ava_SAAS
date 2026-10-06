@@ -20,14 +20,21 @@ const parseLiteral = (ast) => {
 };
 
 const plain = (value, seen = new WeakSet()) => {
-    if (value == null) return value;
+    if (value == null || typeof value !== 'object') return value;
     if (value instanceof Date) return value.toISOString();
     if (typeof value.toHexString === 'function') return value.toHexString();
-    if (typeof value !== 'object') return value;
     if (seen.has(value)) return null;
     seen.add(value);
-    if (Array.isArray(value)) return value.map((item) => plain(item, seen));
-    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, plain(item, seen)]));
+    // Mongoose documents enumerate $__, $__parent, and _doc. Read the stored value first
+    // so a JSON field does not include the parent document.
+    const source = typeof value.toObject === 'function' ? value.toObject({ virtuals: false }) : value;
+    if (Array.isArray(source)) return source.map((item) => plain(item, seen));
+    if (source == null || typeof source !== 'object') return source;
+    if (source !== value) {
+        if (seen.has(source)) return null;
+        seen.add(source);
+    }
+    return Object.fromEntries(Object.entries(source).map(([key, item]) => [key, plain(item, seen)]));
 };
 
 export const JSONScalar = new GraphQLScalarType({

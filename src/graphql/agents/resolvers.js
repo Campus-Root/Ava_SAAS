@@ -21,9 +21,8 @@ export const agentResolvers = {
             if (runtime?.length) filter.runtime = { $in: runtime };
             if (provider?.length) filter['modelConfig.provider'] = { $in: provider };
             if (id !== undefined) filter._id = id;
-            const agents = await AgentModel.find(filter).sort(sort).skip((page - 1) * limit).limit(limit).select(rootFields);
+            const agents = await AgentModel.find(filter).sort(sort).skip((page - 1) * limit).limit(limit);
             const totalDocuments = await AgentModel.countDocuments(filter);
-            if (populateFields?.workflow) await Workflow.populate(agents, { path: 'workflow', select: populateFields.workflow });
             if (populateFields?.business) await Business.populate(agents, { path: 'business', select: populateFields.business });
             if (populateFields?.createdBy) await User.populate(agents, { path: 'createdBy', select: populateFields.createdBy });
             if (populateFields?.channels) await Channel.populate(agents, { path: 'channels', select: populateFields.channels });
