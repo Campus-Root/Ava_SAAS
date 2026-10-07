@@ -16,7 +16,7 @@
     "@apollo/server": "^5.0.0",
     "@as-integrations/express5": "^1.1.2",
     "@avakado.ai/providers": "^1.0.23",
-    "@avakado.ai/schemas": "^1.1.31",
+    "@avakado.ai/schemas": "^1.1.32",
     "@avakado.ai/token-dollars": "^1.0.25",
     "@aws-sdk/client-s3": "^3.1010.0",
     "@aws-sdk/s3-request-presigner": "^3.1010.0",
