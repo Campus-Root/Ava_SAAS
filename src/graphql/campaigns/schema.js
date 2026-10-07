@@ -19,10 +19,6 @@ type Campaign {
     createdAt: DateTime
     updatedAt: DateTime
 }
-    type TypeReference {
-        type: String
-        id: ID
-    }
     type Task {
         _id: ID!
         business: Business
@@ -36,7 +32,7 @@ type Campaign {
         error: JSON
         updatedAt: DateTime
         response: JSON
-        references: TypeReference
+        references: JSON
     }
     type CampaignPagination {
         data: [Campaign]
@@ -55,7 +51,7 @@ type Campaign {
             fetchCampaigns(id: ID, name: String, channelIds: [ID], leadIds: [ID], status: String, limit: Int, page: Int sort: JSON): CampaignPagination
             """ Distinct filter values + counts for the campaigns list UI """
             fetchCampaignFacets: CampaignFacets
-            fetchTasks(campaignId: ID, status: String, limit: Int, page: Int sort: JSON): TaskPagination
+            fetchTasks(campaignId: ID, status: String, limit: Int, messageStatus: Boolean, CallSessionStatus: Boolean, page: Int sort: JSON): TaskPagination
             validateCampaign(channelId: ID, leadIds: [ID], config: JSON): Boolean
         }
        type Mutation {

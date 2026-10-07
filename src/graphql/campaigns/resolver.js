@@ -58,7 +58,7 @@ export const campaignResolvers = {
             ]);
             return result;
         },
-        fetchTasks: async (_, { campaignId, status, limit = 10, page = 1, sort = { updatedAt: -1 } }, context, info) => {
+        fetchTasks: async (_, { campaignId, status, limit = 10, messageStatus = false, CallSessionStatus = false, page = 1, sort = { updatedAt: -1 } }, context, info) => {
             const filter = { business: context.user.business };
             if (campaignId) filter.campaign = campaignId;
             if (status) filter.status = status;
@@ -69,6 +69,8 @@ export const campaignResolvers = {
             if (populateFields?.business) await Business.populate(tasks, { path: 'business', select: populateFields.business });
             if (populateFields?.campaign) await Campaign.populate(tasks, { path: 'campaign', select: populateFields.campaign });
             if (populateFields?.lead) await Lead.populate(tasks, { path: 'lead', select: populateFields.lead });
+            if (messageStatus) await Message.populate(tasks, { path: 'references.id' });
+            if (CallSessionStatus) await CallSession.populate(tasks, { path: 'references.id' });
             return { data: tasks, metaData: { page, limit, totalPages: Math.ceil(totalDocuments / limit), totalDocuments } };
         },
         validateCampaign: async (_, { channelId, leadIds, config = {} }, context, info) => {
