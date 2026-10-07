@@ -30,6 +30,7 @@ type Campaign {
         type: String
         data: JSON
         error: JSON
+        stage: String
         updatedAt: DateTime
         response: JSON
         references: JSON

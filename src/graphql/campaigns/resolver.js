@@ -58,10 +58,11 @@ export const campaignResolvers = {
             ]);
             return result;
         },
-        fetchTasks: async (_, { campaignId, status, limit = 10, page = 1, sort = { updatedAt: -1 } }, context, info) => {
+        fetchTasks: async (_, { campaignId, stage,status, limit = 10, page = 1, sort = { updatedAt: -1 } }, context, info) => {
             const filter = { business: context.user.business };
             if (campaignId) filter.campaign = campaignId;
             if (status) filter.status = status;
+            if (stage) filter.stage = stage;
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { rootFields, populateFields } = getSelectFields(requestedFields.data);
             const tasks = await Task.find(filter).sort(sort).skip((page - 1) * limit).limit(limit).select(rootFields);
