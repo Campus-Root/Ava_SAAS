@@ -14,7 +14,7 @@ import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHt
 import { authForGraphQL } from '../middleware/auth.js';
 import 'dotenv/config'
 import { GraphQLError, Kind } from 'graphql';
-import { corsOptions, openCors } from '../server.js';
+import { corsOptions } from '../server.js';
 import cors from 'cors'
 import { ticketResolvers } from './tickets/resolver.js';
 import { paymentResolvers } from './payments/resolvers.js';

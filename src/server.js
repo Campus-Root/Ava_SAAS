@@ -18,28 +18,49 @@ import { Ticket } from '@avakado.ai/schemas';
 // import { ensureWhatsAppWebhookSubscription } from './utils/whatsapp-app-bootstrap.js';
 import { builtInRoutes } from './controller/index.js';
 import { oauthCors, oauthRouter } from './controller/oauthRouter.js';
-import { ensureDashboardClient } from './services/oauthService.js';
+import { ensureDashboardClient, isCredentialExemptOrigin } from './services/oauthService.js';
 import { ensureAvakadoApis } from './services/avakadoApis.js';
-const whitelist = ["https://ava-saas.onrender.com", "https://www.avakado.ai", "https://api-builder-eight.vercel.app", "https://avakado.ai", "http://localhost:5174", "http://localhost:3000", "https://studio.apollographql.com", "https://app.avakado.ai", "https://api-builder-eight.vercel.app/"];
+const whitelist = ["https://ava-saas.onrender.com", "https://www.avakado.ai", "https://api-builder-eight.vercel.app", "https://avakado.ai", "http://localhost:5174", "http://127.0.0.1:5174", "http://localhost:3000", "https://studio.apollographql.com", "https://app.avakado.ai", "https://api-builder-eight.vercel.app/"];
+const defaultAllowedHeaders = [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Cache-Control",
+    "Pragma",
+    "apollo-require-preflight",
+    "x-apollo-operation-name",
+    "apollographql-client-name",
+    "apollographql-client-version",
+];
+function isAllowedOrigin(origin) {
+    if (!origin) return true;
+    return whitelist.includes(origin) || isCredentialExemptOrigin(origin);
+}
+function allowedHeadersFor(req) {
+    const requested = req.headers["access-control-request-headers"];
+    if (!requested) return defaultAllowedHeaders;
+    const extras = String(requested).split(",").map((header) => header.trim()).filter(Boolean);
+    return [...new Set([...defaultAllowedHeaders, ...extras])];
+}
 export const corsOptions = {
-    origin: (origin, callback) => (!origin || whitelist.indexOf(origin) !== -1) ? callback(null, true) : callback(new Error('Not allowed by CORS')),
+    origin: (origin, callback) => isAllowedOrigin(origin) ? callback(null, origin || true) : callback(new Error('Not allowed by CORS')),
     methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-        "Content-Type",
-        "Authorization",
-        "X-Requested-With",
-        "Accept",
-        "Cache-Control",   // ✅ allow cache control header
-        "Pragma",           // ✅ allow pragma header
-        "apollo-require-preflight",
-        "x-apollo-operation-name",
-    ],
+    allowedHeaders: defaultAllowedHeaders,
     credentials: true,
     exposedHeaders: ['X-Access-Token', 'X-Access-Token-Expires-In'],
     optionsSuccessStatus: 200,
     preflightContinue: false
 };
-export const openCors = cors(corsOptions);
+export function openCors(req, res, next) {
+    const origin = req.headers.origin;
+    if (!isAllowedOrigin(origin)) return next();
+    return cors({
+        ...corsOptions,
+        origin: origin || true,
+        allowedHeaders: allowedHeadersFor(req),
+    })(req, res, next);
+}
 export const createApp = async () => {
     try {
         await initialize();
@@ -47,7 +68,6 @@ export const createApp = async () => {
         const server = http.createServer(app);
         // Middleware
         app.set('trust proxy', 1);
-        // app.use(cors(corsOptions))
         app.use(helmet({
             contentSecurityPolicy: false, // Temporarily disable CSP
             frameguard: { action: 'sameorigin' },
@@ -58,6 +78,7 @@ export const createApp = async () => {
             crossOriginOpenerPolicy: false, // Add this line
             crossOriginEmbedderPolicy: false // Add this line
         }));
+        app.use(openCors);
         app.use(cookieParser());
         app.use(morgan(':date[web] :method :url :status - :response-time ms'));
         app.use(express.json({ type: ["application/json", "text/plain"], limit: '50mb' }));
@@ -89,13 +110,13 @@ export const createApp = async () => {
         app.use(express.urlencoded({ limit: '150mb', extended: true }));
         app.use(bodyParser.urlencoded({ extended: true }));
         // Routes
-        const allowAllCors = cors({
+        const allowAllCors = (req, res, next) => cors({
             origin: true,
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-            allowedHeaders: ['Content-Type', 'Authorization'],
+            allowedHeaders: allowedHeadersFor(req),
             exposedHeaders: ['X-Access-Token', 'X-Access-Token-Expires-In'],
             credentials: true
-        });
+        })(req, res, next);
         app.use('/', (req, res, next) => {
             console.log("origin", req.headers.origin);
             next();

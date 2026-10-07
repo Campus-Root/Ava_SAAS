@@ -6,6 +6,7 @@ import {
     assertRedirectUri,
     originAllowed,
     originAllowedForClient,
+    isCredentialExemptOrigin,
     issueAuthorizationCode,
     exchangeAuthorizationCode,
     rotateRefreshToken,
@@ -271,7 +272,7 @@ oauthRouter.get("/userinfo", async (req, res) => {
 
 async function corsOriginAllowed(req) {
     const origin = req.headers.origin;
-    if (!origin) return true;
+    if (!origin || isCredentialExemptOrigin(origin)) return true;
     const clientId = clientAuthFromRequest(req).client_id;
     if (clientId) {
         const client = await findActiveClient(clientId);

@@ -74,8 +74,23 @@ export function firstPartyOrigins() {
         "https://avakado.ai",
         "http://localhost:5173",
         "http://localhost:5174",
+        "http://127.0.0.1:5174",
         "http://localhost:3000",
     ];
+}
+
+/** Pages on these hosts call app.avakado.ai with credentials, so either scheme is allowed. */
+export function isCredentialExemptOrigin(origin) {
+    if (!origin) return false;
+    try {
+        const url = new URL(origin);
+        const host = url.hostname.toLowerCase();
+        if (host === "www.avakado.ai" || host === "avakado.ai") return true;
+        if ((host === "localhost" || host === "127.0.0.1") && url.port === "5174") return true;
+    } catch {
+        return false;
+    }
+    return false;
 }
 
 export function firstPartyRedirects() {
@@ -141,7 +156,7 @@ export function originAllowedForClient(client, origin) {
 
 export async function originAllowed(origin) {
     if (!origin) return true;
-    if (firstPartyOrigins().includes(origin)) return true;
+    if (firstPartyOrigins().includes(origin) || isCredentialExemptOrigin(origin)) return true;
     const hit = await OAuthClient.exists({ allowedOrigins: origin, revokedAt: null });
     return Boolean(hit);
 }
