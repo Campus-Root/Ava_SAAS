@@ -14,7 +14,7 @@ import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHt
 import { authForGraphQL } from '../middleware/auth.js';
 import 'dotenv/config'
 import { GraphQLError, Kind } from 'graphql';
-import { corsOptions } from '../server.js';
+import { corsOptions, isAllowedOrigin } from '../server.js';
 import cors from 'cors'
 import { ticketResolvers } from './tickets/resolver.js';
 import { paymentResolvers } from './payments/resolvers.js';
@@ -42,14 +42,33 @@ import { logResolvers } from './logs/resolvers.js';
 import { serviceProvidersTypeDefs } from './serviceProviders/schema.js';
 import { serviceProvidersResolvers } from './serviceProviders/resolvers.js';
 import graphqlUploadExpress from 'graphql-upload/graphqlUploadExpress.mjs'
-const typeDefs = mergeTypeDefs([scopeAuthDirectiveTypeDefs, sharedTypeDefs, conversationTypeDefs, channelTypeDefs, ticketTypeDefs, notificationTypeDefs, userTypeDefs, serviceProvidersTypeDefs, agentTypeDefs, actionTypeDefs, knowledgeTypeDefs, campaignTypeDefs, messageTypeDefs, leadTypeDefs, paymentTypeDefs, workflowTypeDefs, logTypeDefs]);
-const resolvers = mergeResolvers([conversationResolvers, channelResolvers, ticketResolvers, notificationResolvers, userResolvers, serviceProvidersResolvers, agentResolvers, actionResolvers, knowledgeResolvers, campaignResolvers, messageResolvers, leadResolvers, paymentResolvers, workflowResolvers, logResolvers]);
+import { WebSocketServer } from 'ws';
+import { useServer } from 'graphql-ws/use/ws';
+import { progressTypeDefs } from './progress/schema.js';
+import { progressResolvers } from './progress/resolvers.js';
+import { subscriptionContext } from './progress/auth.js';
+const typeDefs = mergeTypeDefs([scopeAuthDirectiveTypeDefs, sharedTypeDefs, conversationTypeDefs, channelTypeDefs, ticketTypeDefs, notificationTypeDefs, userTypeDefs, serviceProvidersTypeDefs, agentTypeDefs, actionTypeDefs, knowledgeTypeDefs, campaignTypeDefs, messageTypeDefs, leadTypeDefs, paymentTypeDefs, workflowTypeDefs, logTypeDefs, progressTypeDefs]);
+const resolvers = mergeResolvers([conversationResolvers, channelResolvers, ticketResolvers, notificationResolvers, userResolvers, serviceProvidersResolvers, agentResolvers, actionResolvers, knowledgeResolvers, campaignResolvers, messageResolvers, leadResolvers, paymentResolvers, workflowResolvers, logResolvers, progressResolvers]);
 export const registerApollo = async (app, httpServer) => {
   const schema = makeExecutableSchema({
     typeDefs,
     resolvers,
   });
   const schemaWithDirectives = applyScopeAuthDirectives(schema);
+  const wsServer = new WebSocketServer({ server: httpServer, path: '/graphql' });
+  const serverCleanup = useServer({
+    schema: schemaWithDirectives,
+    context: (ctx) => subscriptionContext(ctx),
+    onConnect: async (ctx) => {
+      const origin = ctx.extra?.request?.headers?.origin;
+      if (origin && !isAllowedOrigin(origin)) return false;
+      await subscriptionContext(ctx);
+    },
+    onSubscribe: (_ctx, message) => {
+      const name = message.payload?.operationName || 'Anonymous';
+      console.log(`userId: ${_ctx.avaAuth?.user?._id} - subscription -> ${name}`);
+    },
+  }, wsServer, 12_000);
   const apolloServer = new ApolloServer({
     schema: schemaWithDirectives,
     introspection: true,
@@ -102,7 +121,15 @@ export const registerApollo = async (app, httpServer) => {
         },
       });
     },
-    plugins: [ApolloServerPluginDrainHttpServer({ httpServer }), ApolloServerPluginLandingPageProductionDefault({ embed: true }),
+    plugins: [ApolloServerPluginDrainHttpServer({ httpServer }), {
+      async serverWillStart() {
+        return {
+          async drainServer() {
+            await serverCleanup.dispose();
+          },
+        };
+      },
+    }, ApolloServerPluginLandingPageProductionDefault({ embed: true }),
     {
       async requestDidStart(requestContext) {
         return {

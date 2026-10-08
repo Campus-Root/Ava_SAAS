@@ -1,7 +1,7 @@
 import AuthService from "../services/authService.js";
 import { REFRESH_COOKIE_NAME, sendRenewedAccessToken } from "../utils/authCookies.js";
 
-async function authenticateBearer(req, res, token) {
+export async function authenticateBearer(req, res, token) {
     const { success, message, data } = await AuthService.verifyTokens(token);
     if (success) {
         const { data: user } = await AuthService.verifyDecodedToken(data.decoded);

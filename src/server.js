@@ -33,7 +33,7 @@ const defaultAllowedHeaders = [
     "apollographql-client-name",
     "apollographql-client-version",
 ];
-function isAllowedOrigin(origin) {
+export function isAllowedOrigin(origin) {
     if (!origin) return true;
     return whitelist.includes(origin) || isCredentialExemptOrigin(origin);
 }

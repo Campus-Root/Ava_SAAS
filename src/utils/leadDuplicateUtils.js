@@ -180,61 +180,78 @@ export function escapeRegex(str) {
  *
  * @returns {{ wouldCreate: Array, conflicts: Array }}
  */
-export function classifyBulkCreateRows(dataList = [], handleToLead = new Map()) {
-  const seenInBatch = new Map(); // handleKey → first index in this batch
-  const wouldCreate = [];
-  const conflicts = [];
+/**
+ * Classifies one bulk-create row against earlier rows in this batch and known leads.
+ * Mutates `seenInBatch` when the row would be created.
+ */
+export function classifyBulkCreateRow(input, index, seenInBatch, handleToLead) {
+  const handleKeys = extractHandles(input.contactDetails).map(({ key }) => key);
 
-  dataList.forEach((input, index) => {
-    const handleKeys = extractHandles(input.contactDetails).map(({ key }) => key);
-
-    // 1) Within-batch collision against an earlier row that wouldCreate
-    const batchMatched = [];
-    let conflictIndex = null;
-    for (const key of handleKeys) {
-      if (seenInBatch.has(key)) {
-        batchMatched.push(key);
-        if (conflictIndex == null) conflictIndex = seenInBatch.get(key);
-      }
+  const batchMatched = [];
+  let conflictIndex = null;
+  for (const key of handleKeys) {
+    if (seenInBatch.has(key)) {
+      batchMatched.push(key);
+      if (conflictIndex == null) conflictIndex = seenInBatch.get(key);
     }
-    if (batchMatched.length) {
-      conflicts.push({
+  }
+  if (batchMatched.length) {
+    return {
+      outcome: 'WITHIN_BATCH',
+      conflict: {
         index,
         input,
         reason: 'WITHIN_BATCH',
         conflictIndex,
         existingLeadId: null,
         matchedOn: batchMatched,
-      });
-      return;
-    }
+      },
+    };
+  }
 
-    // 2) Existing lead in DB
-    const dbMatched = [];
-    let existingLead = null;
-    for (const key of handleKeys) {
-      if (handleToLead.has(key)) {
-        dbMatched.push(key);
-        if (!existingLead) existingLead = handleToLead.get(key);
-      }
+  const dbMatched = [];
+  let existingLead = null;
+  for (const key of handleKeys) {
+    if (handleToLead.has(key)) {
+      dbMatched.push(key);
+      if (!existingLead) existingLead = handleToLead.get(key);
     }
-    if (existingLead) {
-      conflicts.push({
+  }
+  if (existingLead) {
+    return {
+      outcome: 'EXISTING_LEAD',
+      conflict: {
         index,
         input,
         reason: 'EXISTING_LEAD',
         conflictIndex: null,
         existingLeadId: existingLead._id.toString(),
         matchedOn: dbMatched,
-      });
-      return;
-    }
+      },
+    };
+  }
 
-    // 3) Clean — would create; claim handles for later within-batch checks
-    wouldCreate.push({ index, input });
-    for (const key of handleKeys) {
-      if (!seenInBatch.has(key)) seenInBatch.set(key, index);
-    }
+  for (const key of handleKeys) {
+    if (!seenInBatch.has(key)) seenInBatch.set(key, index);
+  }
+  return { outcome: 'WOULD_CREATE', row: { index, input } };
+}
+
+/**
+ * Dry-run classify for bulk create: within-batch collisions + DB matches.
+ * Does not write. `handleToLead` should be preloaded from DB (see indexLeadsByHandle).
+ *
+ * @returns {{ wouldCreate: Array, conflicts: Array }}
+ */
+export function classifyBulkCreateRows(dataList = [], handleToLead = new Map()) {
+  const seenInBatch = new Map(); // handleKey → first index in this batch
+  const wouldCreate = [];
+  const conflicts = [];
+
+  dataList.forEach((input, index) => {
+    const classified = classifyBulkCreateRow(input, index, seenInBatch, handleToLead);
+    if (classified.conflict) conflicts.push(classified.conflict);
+    else wouldCreate.push(classified.row);
   });
 
   return { wouldCreate, conflicts };
