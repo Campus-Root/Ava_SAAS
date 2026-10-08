@@ -264,6 +264,17 @@ export const authForGraphQL = async (req, res) => {
             console.log("Allowing introspection query without auth");
             return { user: null, isAuthenticated: false, isIntrospection: true };
         }
+        const cookieHeader = req.headers.cookie || "";
+        const cookieNames = cookieHeader
+            ? cookieHeader.split(";").map((part) => part.trim().split("=")[0]).filter(Boolean)
+            : [];
+        console.log("GraphQL auth cookies:", {
+            origin: req.headers.origin || null,
+            cookieHeaderPresent: Boolean(cookieHeader),
+            cookieNames,
+            parsedCookieNames: Object.keys(req.cookies || {}),
+            refreshCookie: req.cookies?.[REFRESH_COOKIE_NAME] ? "present" : "missing",
+        });
         const authHeader = req.headers.authorization;
         if (!authHeader) throw new Error('Access Token Missing');
         const token = authHeader.split(" ")[1];
@@ -272,7 +283,7 @@ export const authForGraphQL = async (req, res) => {
         if (session.error) throw new Error(`Token Verification Failed: ${session.error}`);
         return { req, res, user: session.user, isAuthenticated: true, accessToken: session.accessToken };
     } catch (error) {
-        // console.error(error);
+        console.error("GraphQL auth failed:", error.message);
         throw new Error('Internal Server Error');
     }
 };
