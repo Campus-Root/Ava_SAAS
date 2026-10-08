@@ -15,6 +15,7 @@ import { leadRoutes } from './leadsRouter.js';
 import { conversationRoutes } from './conversationRouter.js';
 import { campaignRoutes } from './campaignRouter.js';
 import { providerRoutes } from './providerApis.js';
+import { mcpRouter } from '../mcp/router.js';
 import { normalizePhoneNumber } from '../utils/setup.js';
 const logViewHtml = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../views/logview.html'), 'utf8');
 export const builtInRoutes = Router();
@@ -23,6 +24,7 @@ builtInRoutes.get('/logview', (_req, res) => {
     res.set('Cache-Control', 'no-store');
     res.type('html').send(logViewHtml);
 });
+builtInRoutes.use('/mcp', mcpRouter);
 builtInRoutes.use('/lead', leadRoutes);
 builtInRoutes.use('/conversation', conversationRoutes);
 builtInRoutes.use('/campaign', campaignRoutes);
