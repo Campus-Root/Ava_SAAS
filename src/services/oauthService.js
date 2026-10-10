@@ -136,11 +136,21 @@ export async function ensureDashboardClient() {
     }
 }
 
+const CLIENT_CACHE_MS = 60_000;
+const clientCache = new Map();
+
+export function forgetOauthClient(clientId) {
+    if (clientId) clientCache.delete(clientId);
+}
+
 export async function findActiveClient(clientId) {
     if (!clientId) return null;
+    const cached = clientCache.get(clientId);
+    if (cached && cached.expiresAt > Date.now()) return cached.client;
     const client = await OAuthClient.findOne({ clientId });
-    if (!client || client.revokedAt) return null;
-    return client;
+    const active = client && !client.revokedAt ? client : null;
+    clientCache.set(clientId, { expiresAt: Date.now() + CLIENT_CACHE_MS, client: active });
+    return active;
 }
 
 export function assertRedirectUri(client, redirectUri) {
@@ -434,12 +444,15 @@ export async function verifyAccessJwt(accessToken) {
         if (decoded.token_use === "sso") {
             return { success: false, message: "SSO token cannot be used as an access token", data: { decoded: null } };
         }
-        if (decoded.jti && await isJtiRevoked(decoded.jti)) {
+        const [revoked, client] = await Promise.all([
+            decoded.jti ? isJtiRevoked(decoded.jti) : false,
+            decoded.cid && decoded.sv != null ? findActiveClient(decoded.cid) : null,
+        ]);
+        if (revoked) {
             return { success: false, message: "Access token revoked", data: { decoded: null } };
         }
         if (decoded.cid && decoded.sv != null) {
-            const client = await OAuthClient.findOne({ clientId: decoded.cid });
-            if (!client || client.revokedAt) {
+            if (!client) {
                 return { success: false, message: "OAuth client revoked", data: { decoded: null } };
             }
             if (Number(decoded.sv) !== Number(client.secretVersion)) {
@@ -518,6 +531,7 @@ export async function rotateOauthClientSecret(client) {
     client.secretHash = sha256Hex(secret);
     client.secretVersion = (client.secretVersion || 1) + 1;
     await client.save();
+    forgetOauthClient(client.clientId);
     await revokeRefreshFamily({ clientId: client.clientId });
     return { client, clientSecret: secret };
 }

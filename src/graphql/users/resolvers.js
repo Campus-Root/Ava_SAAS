@@ -23,6 +23,7 @@ import {
     publicClientView,
     revokeRefreshFamily,
     findMutableOauthClient,
+    forgetOauthClient,
     assertCanManageOauthClient,
     signSsoToken,
 } from '../../services/oauthService.js';
@@ -145,6 +146,7 @@ export const userResolvers = {
             const client = assertCanManageOauthClient(user, await findMutableOauthClient(user));
             client.revokedAt = new Date();
             await client.save();
+            forgetOauthClient(client.clientId);
             await revokeRefreshFamily({ clientId: client.clientId });
             return true;
         },
