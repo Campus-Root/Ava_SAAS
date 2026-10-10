@@ -6,3 +6,4 @@ unnecessary
 dockerfile
 *DS_Store
 test
+*.sh
