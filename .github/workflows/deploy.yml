@@ -1,8 +1,7 @@
 name: Deploy Ava_SAAS
 
 on:
-  push:
-    branches: [dev, main]
+  workflow_dispatch:
 
 concurrency:
   group: ava-saas-${{ github.ref_name }}

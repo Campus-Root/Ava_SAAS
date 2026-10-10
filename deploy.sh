@@ -12,6 +12,13 @@ if [ ! -f "$ENV_SRC" ]; then
   exit 1
 fi
 
+cd "$ROOT"
+git add -A
+if ! git diff --cached --quiet; then
+  git commit -m "in prod"
+fi
+git push origin HEAD
+
 rsync -az --delete \
   --exclude node_modules \
   --exclude .git \
