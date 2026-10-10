@@ -2,17 +2,17 @@
 import 'dotenv/config'
 import { createApp } from './server.js';
 const PORT = process.env.PORT;
-const { app, server } = await createApp();
-server.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
-process.on('SIGINT', async () => {
-  console.log('\n🛑 Gracefully shutting down...');
-  try {
-    server.close(() => {
-      console.log('✅ Shutdown complete.');
-      process.exit(0);
-    });
-  } catch (err) {
-    console.error('❌ Error during shutdown:', err);
-    process.exit(1);
-  }
-});
+if (!PORT) {
+  console.error('PORT environment variable is not set');
+  process.exit(1);
+}
+const { server } = await createApp();
+server.listen(PORT, '0.0.0.0', () => console.log(`Server running on http://0.0.0.0:${PORT}`));
+
+function shutdown(signal) {
+  console.log(`Received ${signal}, shutting down`);
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(1), 10000).unref();
+}
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));

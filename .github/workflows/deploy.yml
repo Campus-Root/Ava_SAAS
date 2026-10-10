@@ -1,0 +1,32 @@
+name: Deploy Ava_SAAS
+
+on:
+  push:
+    branches: [dev, main]
+
+concurrency:
+  group: ava-saas-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    if: github.ref == 'refs/heads/dev'
+    runs-on: [self-hosted, ava-test]
+    environment: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and restart on the test box
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: bash scripts/deploy-on-host.sh
+
+  production:
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, ava-prod]
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and restart on the production box
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: bash scripts/deploy-on-host.sh

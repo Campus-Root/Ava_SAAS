@@ -3,5 +3,6 @@ npm-debug.log
 .git
 .gitignore
 .env
+.env.*
 *.pem
 *DS_Store

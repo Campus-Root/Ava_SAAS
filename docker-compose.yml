@@ -1,0 +1,14 @@
+services:
+  ava-saas:
+    build: .
+    image: ava-saas:local
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:${PORT}:${PORT}"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
