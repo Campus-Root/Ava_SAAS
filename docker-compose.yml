@@ -5,7 +5,21 @@ services:
     env_file:
       - .env
     ports:
-      - "127.0.0.1:${PORT}:${PORT}"
+      - "127.0.0.1:3000:3000"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+  ava-saas-2:
+    image: ava-saas:local
+    env_file:
+      - .env
+    environment:
+      PORT: "3000"
+    ports:
+      - "127.0.0.1:3002:3000"
     restart: unless-stopped
     logging:
       driver: json-file
