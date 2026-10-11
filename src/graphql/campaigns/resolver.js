@@ -36,14 +36,23 @@ export const campaignResolvers = {
             if (populateFields?.channel) await Channel.populate(campaigns, { path: 'channel', select: populateFields.channel });
             return { data: campaigns, metaData: { page, limit, totalPages: Math.ceil(totalDocuments / limit), totalDocuments } };
         },
-        fetchCampaignFacets: async (_, __, context) => {
+        fetchCampaignFacets: async (_, { status = [], stage = [], channel, campaignId }, context) => {
             const baseFilter = { business: context.user.business };
+            if (campaignId) baseFilter._id = campaignId;
+            if (status.length) baseFilter.status = { $in: status };
+            if (stage.length) baseFilter.stage = { $in: stage };
+            if (channel) baseFilter.channel = channel;
             const [result] = await Campaign.aggregate([
                 { $match: baseFilter },
                 {
                     $facet: {
                         status: [
                             { $group: { _id: '$status', count: { $sum: 1 } } },
+                            { $match: { _id: { $ne: null } } },
+                            { $sort: { count: -1 } },
+                        ],
+                        stage: [
+                            { $group: { _id: '$stage', count: { $sum: 1 } } },
                             { $match: { _id: { $ne: null } } },
                             { $sort: { count: -1 } },
                         ],
@@ -58,11 +67,11 @@ export const campaignResolvers = {
             ]);
             return result;
         },
-        fetchTasks: async (_, { campaignId, stage,status, limit = 10, page = 1, sort = { updatedAt: -1 } }, context, info) => {
+        fetchTasks: async (_, { campaignId, stage = [], status = [], limit = 10, page = 1, sort = { updatedAt: -1 } }, context, info) => {
             const filter = { business: context.user.business };
             if (campaignId) filter.campaign = campaignId;
-            if (status) filter.status = status;
-            if (stage) filter.stage = stage;
+            if (status.length) filter.status = { $in: status };
+            if (stage.length) filter.stage = { $in: stage };
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { rootFields, populateFields } = getSelectFields(requestedFields.data);
             const tasks = await Task.find(filter).sort(sort).skip((page - 1) * limit).limit(limit).select(rootFields);
