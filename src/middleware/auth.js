@@ -1,9 +1,15 @@
 import jwt from "jsonwebtoken";
 import { User } from "@avakado.ai/schemas";
 import AuthService from "../services/authService.js";
+import { readSession, rememberSession } from "../services/sessionCache.js";
 import { REFRESH_COOKIE_NAME, sendRenewedAccessToken } from "../utils/authCookies.js";
 
 export async function authenticateBearer(req, res, token) {
+    const cached = readSession(token);
+    if (cached) {
+        const exp = jwt.decode(token)?.exp;
+        if (!exp || exp * 1000 > Date.now()) return { user: cached, accessToken: token };
+    }
     const peek = jwt.decode(token);
     const userPromise = peek?.id ? User.findById(peek.id).select("-password") : null;
     const { success, message, data } = await AuthService.verifyTokens(token);
@@ -13,6 +19,7 @@ export async function authenticateBearer(req, res, token) {
             user = (await AuthService.verifyDecodedToken(data.decoded)).data;
         }
         if (!user?._id) return { error: "Invalid decoded token payload" };
+        rememberSession(token, user, { jti: data.decoded?.jti, cid: data.decoded?.cid });
         return { user, accessToken: token };
     }
     if (message === "jwt expired") {

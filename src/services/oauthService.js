@@ -10,6 +10,7 @@ import {
     User,
 } from "@avakado.ai/schemas";
 import { dashboardOrigin } from "./passwordReset.js";
+import { forgetSessionByJti, forgetSessionsForClient } from "./sessionCache.js";
 
 const { ACCESS_SECRET } = process.env;
 
@@ -141,6 +142,7 @@ const clientCache = new Map();
 
 export function forgetOauthClient(clientId) {
     if (clientId) clientCache.delete(clientId);
+    forgetSessionsForClient(clientId);
 }
 
 export async function findActiveClient(clientId) {
@@ -368,6 +370,7 @@ export async function rotateRefreshToken({ refreshToken, clientId, clientSecret 
 
 export async function revokeAccessJti(jti, exp) {
     if (!jti) return;
+    forgetSessionByJti(jti);
     const expiresAt = exp ? new Date(exp * 1000) : new Date(Date.now() + ACCESS_TTL_SECONDS * 1000);
     await OAuthRevokedJti.updateOne({ jti }, { $set: { jti, expiresAt } }, { upsert: true });
 }
