@@ -73,7 +73,7 @@ export const leadResolvers = {
       }
 
       const requestedFields = graphqlFields(info, {}, { processArguments: false });
-      const { rootFields } = getSelectFields(requestedFields.data);
+      const { rootFields, populateFields } = getSelectFields(requestedFields.data);
       const [leads, totalDocuments] = await Promise.all([
         Lead.find(filter)
           .sort(orderedSort)
@@ -82,7 +82,9 @@ export const leadResolvers = {
           .select(rootFields),
         Lead.countDocuments(filter),
       ]);
-
+      if (populateFields?.business) await Business.populate(leads, { path: 'business', select: populateFields.business });
+      if (populateFields?.createdBy) await User.populate(leads, { path: 'createdBy', select: populateFields.createdBy });
+      if (populateFields?.template) await LeadTemplate.populate(leads, { path: 'template', select: populateFields.template });
       return { data: leads, metaData: { page, limit, totalPages: Math.ceil(totalDocuments / limit), totalDocuments } };
     },
     fetchLeadFacets: async (_, { }, context) => {
