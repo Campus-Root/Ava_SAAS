@@ -1,7 +1,6 @@
 services:
   ava-saas:
-    build: .
-    image: ava-saas:local
+    image: ${AVA_IMAGE:?}
     env_file:
       - .env
     ports:
@@ -13,7 +12,7 @@ services:
         max-size: "10m"
         max-file: "5"
   ava-saas-2:
-    image: ava-saas:local
+    image: ${AVA_IMAGE:?}
     env_file:
       - .env
     environment:
