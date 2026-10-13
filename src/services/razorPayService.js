@@ -38,6 +38,7 @@ export class RazorPayService {
             subscription = await this.client.subscriptions.create({ total_count, plan_id, quantity, customer_notify: true, addons, offer_id, notes, start_at });
             return subscription;
         } catch (error) {
+            console.log({ total_count, plan_id, quantity, addons, offer_id, notes, start_at });
             console.error(error);
             const description = error?.error?.description || error?.message;
             const wrapped = new Error(description || "Failed to create subscription");
