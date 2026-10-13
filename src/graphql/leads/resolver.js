@@ -1,5 +1,5 @@
 
-import { Lead, LeadTemplate, sessionChatClosed } from '@avakado.ai/schemas';
+import { Business, Lead, LeadTemplate, sessionChatClosed, User } from '@avakado.ai/schemas';
 import graphqlFields from "graphql-fields";
 import { documentTypes, getSelectFields } from "../../utils/graphqlTools.js";
 import { GraphQLError } from "graphql";
