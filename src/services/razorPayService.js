@@ -1,6 +1,5 @@
 import Razorpay from "razorpay";
 import "dotenv/config";
-console.log({razorpay_Key_Id: process.env.RAZORPAY_KEY_ID, razorpay_Key_Secret: process.env.RAZORPAY_KEY_SECRET});
 export class RazorPayService {
     static client = new Razorpay({
         key_id: process.env.RAZORPAY_KEY_ID,

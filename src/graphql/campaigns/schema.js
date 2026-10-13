@@ -43,15 +43,19 @@ type Campaign {
         data: [Task]
         metaData: JSON
     }
+    type TaskFacets {
+        status: [FacetOption]
+        stage: [FacetOption]
+    }
     type CampaignFacets {
         status: [FacetOption]
         channel: [FacetOption]
-        cancel_requested: [FacetOption]
     }
       type  Query {
             fetchCampaigns(id: ID, name: String, channelIds: [ID], leadIds: [ID], status: String, limit: Int, page: Int sort: JSON): CampaignPagination
             """ Distinct filter values + counts for the campaigns list UI """
-            fetchCampaignFacets(status: [String], stage: [String], channel: ID, campaignId: ID): CampaignFacets
+            fetchCampaignFacets(status: [String],channel: ID): CampaignFacets
+            fetchTaskFacets(campaignId: ID!,status: [String], stage: [String]): TaskFacets
             fetchTasks(campaignId: ID, status: [String],stage: [String], limit: Int, page: Int sort: JSON): TaskPagination
             validateCampaign(channelId: ID, leadIds: [ID], config: JSON): Boolean
         }

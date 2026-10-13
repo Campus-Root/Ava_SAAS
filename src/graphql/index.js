@@ -245,7 +245,7 @@ export const registerApollo = async (app, httpServer) => {
         const authResult = await authForGraphQL(req, res);
         return authResult;
       } catch (error) {
-        console.error('Auth error details:', { message: error.message, stack: error.stack, headers: req.headers, body: req.body });
+        // console.error('Auth error details:', { message: error.message, stack: error.stack, headers: req.headers, body: req.body });
         if (error.message === 'Internal Server Error') throw new Error('Authentication failed: Unable to verify credentials');
         throw error;
       }

@@ -95,6 +95,7 @@ export const sharedTypeDefs = `#graphql
 
   """A single filter option with document count"""
   type FacetOption {
+    _id: ID
     value: String
     count: Int
   }

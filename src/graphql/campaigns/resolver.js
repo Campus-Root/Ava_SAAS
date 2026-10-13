@@ -36,11 +36,9 @@ export const campaignResolvers = {
             if (populateFields?.channel) await Channel.populate(campaigns, { path: 'channel', select: populateFields.channel });
             return { data: campaigns, metaData: { page, limit, totalPages: Math.ceil(totalDocuments / limit), totalDocuments } };
         },
-        fetchCampaignFacets: async (_, { status = [], stage = [], channel, campaignId }, context) => {
+        fetchCampaignFacets: async (_, { status = [], channel }, context) => {
             const baseFilter = { business: context.user.business };
-            if (campaignId) baseFilter._id = campaignId;
             if (status.length) baseFilter.status = { $in: status };
-            if (stage.length) baseFilter.stage = { $in: stage };
             if (channel) baseFilter.channel = channel;
             const [result] = await Campaign.aggregate([
                 { $match: baseFilter },
@@ -50,16 +48,40 @@ export const campaignResolvers = {
                             { $group: { _id: '$status', count: { $sum: 1 } } },
                             { $match: { _id: { $ne: null } } },
                             { $sort: { count: -1 } },
-                        ],
-                        stage: [
-                            { $group: { _id: '$stage', count: { $sum: 1 } } },
-                            { $match: { _id: { $ne: null } } },
-                            { $sort: { count: -1 } },
+                            { $project: { _id: 0, value: { $toString: '$_id' }, count: 1 } },
                         ],
                         channel: [
                             { $group: { _id: '$channel', count: { $sum: 1 } } },
                             { $match: { _id: { $ne: null } } },
-                            { $project: { _id: 0, value: { $toString: '$_id name' }, count: 1 } },
+                            { $lookup: { from: Channel.collection.name, localField: '_id', foreignField: '_id', as: 'channel' } },
+                            { $unwind: '$channel' },
+                            { $project: { _id: 1, value: { $toString: '$channel.name' }, count: 1 } },
+                            { $sort: { count: -1 } },
+                        ],
+                    },
+                },
+            ]);
+            return result;
+        },
+        fetchTaskFacets: async (_, { campaignId, status = [], stage = [] }, context) => {
+            const baseFilter = { business: Task.schema.path('business').cast(context.user.business) };
+            if (campaignId) baseFilter.campaign = Task.schema.path('campaign').cast(campaignId);
+            if (status.length) baseFilter.status = { $in: status };
+            if (stage.length) baseFilter.stage = { $in: stage };
+            const [result] = await Task.aggregate([
+                { $match: baseFilter },
+                {
+                    $facet: {
+                        status: [
+                            { $group: { _id: '$status', count: { $sum: 1 } } },
+                            { $match: { _id: { $ne: null } } },
+                            { $project: { _id: 0, value: { $toString: '$_id' }, count: 1 } },
+                            { $sort: { count: -1 } },
+                        ],
+                        stage: [
+                            { $group: { _id: '$stage', count: { $sum: 1 } } },
+                            { $match: { _id: { $ne: null } } },
+                            { $project: { _id: 0, value: { $toString: '$_id' }, count: 1 } },
                             { $sort: { count: -1 } },
                         ],
                     },
