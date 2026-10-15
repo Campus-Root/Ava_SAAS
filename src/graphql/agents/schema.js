@@ -50,6 +50,7 @@ export const agentTypeDefs = `#graphql
     modelConfig: ModelConfig
     modality: String
     responseConfig: JSON
+    speechConfig: JSON
     """ Associated workflow """
     workflow: Workflow
     """ Communication channels the agent is active on """
@@ -101,6 +102,7 @@ export const agentTypeDefs = `#graphql
     modelConfig: JSON
     modality: String
     responseConfig: JSON
+    speechConfig: JSON
     workflow: ID
     channels: [ID]
     actions: [ID]

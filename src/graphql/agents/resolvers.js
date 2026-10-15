@@ -133,7 +133,7 @@ export const agentResolvers = {
         createAgent: async (_, { agent }, context, info) => {
             const requestedFields = graphqlFields(info, {}, { processArguments: false });
             const { projection, nested } = flattenFields(requestedFields);
-            let { personalInfo, runtime, modelConfig, modality, responseConfig, actions = [], channels = [], workflow, isPublic, isFeatured } = agent;
+            let { personalInfo, runtime, modelConfig, modality, responseConfig, speechConfig, actions = [], channels = [], workflow, isPublic, isFeatured } = agent;
             const [foundChannels, foundActions, foundWorkflow] = await Promise.all([
                 Promise.all(channels.map(id => Channel.findOne({ _id: id, business: context.user.business }, "_id"))),
                 Promise.all(actions.map(id => Action.findOne({ _id: id, business: context.user.business }, "_id"))),
@@ -142,7 +142,7 @@ export const agentResolvers = {
             if (workflow && !foundWorkflow) throw new GraphQLError("Workflow not found", { extensions: { code: "WORKFLOW_NOT_FOUND" } });
             if (foundChannels.length !== channels.length) throw new GraphQLError("Channel not found", { extensions: { code: "CHANNEL_NOT_FOUND" } });
             if (foundActions.length !== actions.length) throw new GraphQLError("Action not found", { extensions: { code: "ACTION_NOT_FOUND" } });
-            const newAgent = await AgentModel.create({ personalInfo, runtime, modelConfig, modality, responseConfig, channels, actions, workflow, business: context.user.business, createdBy: context.user._id, isPublic, isFeatured })
+            const newAgent = await AgentModel.create({ personalInfo, runtime, modelConfig, modality, responseConfig, speechConfig, channels, actions, workflow, business: context.user.business, createdBy: context.user._id, isPublic, isFeatured })
             await Business.populate(newAgent, { path: 'business', select: nested.business });
             await Workflow.populate(newAgent, { path: 'workflow', select: nested.workflow });
             await User.populate(newAgent, { path: 'createdBy', select: nested.createdBy });
