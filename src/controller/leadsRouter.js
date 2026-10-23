@@ -91,11 +91,10 @@ leadRoutes.post('/', authMiddleware, async (req, res) => {
 leadRoutes.patch('/:id', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
-        const { status, notes, name, leadScore, contactDetails, nextFollowUpAt } = req.body;
+        const { status, notes, name, leadScore, nextFollowUpAt } = req.body;
         let update = {};
         if (name) update.name = name;
         if (leadScore) update.leadScore = leadScore;
-        if (contactDetails) update.contactDetails = contactDetails;
         if (nextFollowUpAt) update.nextFollowUpAt = nextFollowUpAt;
         if (status) update.status = status;
         if (notes) update.notes = notes;
