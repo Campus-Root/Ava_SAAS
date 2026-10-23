@@ -91,8 +91,15 @@ leadRoutes.post('/', authMiddleware, async (req, res) => {
 leadRoutes.patch('/:id', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
-        const { status, notes } = req.body;
-        const lead = await Lead.findByIdAndUpdate(id, { status, notes }, { new: true, runValidators: true });
+        const { status, notes, name, leadScore, contactDetails, nextFollowUpAt } = req.body;
+        let update = {};
+        if (name) update.name = name;
+        if (leadScore) update.leadScore = leadScore;
+        if (contactDetails) update.contactDetails = contactDetails;
+        if (nextFollowUpAt) update.nextFollowUpAt = nextFollowUpAt;
+        if (status) update.status = status;
+        if (notes) update.notes = notes;
+        const lead = await Lead.findByIdAndUpdate(id, update, { new: true, runValidators: true });
         if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
         res.status(200).json({ success: true, message: 'Lead updated successfully', data: lead });
     } catch (error) {
