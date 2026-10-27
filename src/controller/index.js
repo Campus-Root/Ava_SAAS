@@ -17,6 +17,7 @@ import { campaignRoutes } from './campaignRouter.js';
 import { providerRoutes } from './providerApis.js';
 import { mcpRouter } from '../mcp/router.js';
 import { normalizePhoneNumber } from '../utils/setup.js';
+import { channelRoutes } from './channelRouter.js';
 const logViewHtml = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../views/logview.html'), 'utf8');
 export const builtInRoutes = Router();
 builtInRoutes.get('/', (_, res) => res.status(200).send('Server running'));
@@ -28,6 +29,7 @@ builtInRoutes.use('/mcp', mcpRouter);
 builtInRoutes.use('/lead', leadRoutes);
 builtInRoutes.use('/conversation', conversationRoutes);
 builtInRoutes.use('/campaign', campaignRoutes);
+builtInRoutes.use('/channel', channelRoutes);
 builtInRoutes.use('/v1', providerRoutes);
 builtInRoutes.get('/exotel-redirect', async (request, reply) => {
     let { channelId, CallSid, CallFrom, CallTo, Direction, CustomField = "{}" } = request.query;
