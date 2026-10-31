@@ -29,6 +29,15 @@ export const leadTypeDefs = `#graphql
     validUntil: DateTime
   }
 
+  type LeadStatusTransition {
+    from: LeadStatusEnum
+    to: LeadStatusEnum
+    author: JSON
+    note: String
+    createdAt: DateTime
+    updatedAt: DateTime
+  }
+
   """All known contact handles for a lead, grouped by platform"""
   type LeadContactDetails {
     whatsapp: [LeadPlatformEntry]
@@ -54,6 +63,7 @@ export const leadTypeDefs = `#graphql
     tags: [String]
     leadScore: Int
     status: LeadStatusEnum
+    statusTransitions: [LeadStatusTransition]
     notes: [String]
     lastInteractedAt: DateTime
     nextFollowUpAt: DateTime
